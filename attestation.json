@@ -1,0 +1,9 @@
+{
+  "pluginId": "neobase.enigmes",
+  "repo": "NDesumeur/neobase-plugin-enigmes",
+  "version": "1.0.0",
+  "sha256": "0d4757f3ef0b710f2761dfc702177a95a57696df4d869047fc081a4ac58268aa",
+  "approvedAt": "2026-11-04T08:18:41.091Z",
+  "neobase": ">=4.0.0",
+  "signature": "s4j48++iVJuISrjTDVI5KafneAu42aMFyHbZHukcxKMzy925hTqRW0eT/iEu8WZKTAOxv4ABuP9wJZLW+TyJBA=="
+}

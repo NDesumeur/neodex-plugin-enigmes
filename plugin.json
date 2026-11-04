@@ -1,0 +1,20 @@
+{
+  "id": "neobase.enigmes",
+  "name": "Valcendre",
+  "version": "1.0.0",
+  "author": "NDesumeur",
+  "description": "L'horloge aux énigmes : 30 énigmes à résoudre dans trois quartiers pour remettre en marche la grande horloge de Valcendre. Logique, calcul, déduction et énigmes à manipuler, avec des indices.",
+  "icon": "icon.png",
+  "entry": "index.js",
+  "view": "enigmes",
+  "neobase": ">=4.0.0",
+  "sdk": "2.0.0",
+  "type": "app",
+  "category": "Jeux",
+  "mobile": true,
+  "system": false,
+  "dependencies": {},
+  "permissions": [
+    "storage"
+  ]
+}

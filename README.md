@@ -1,6 +1,6 @@
 # Valcendre : l'horloge aux énigmes
 
-Cette nuit, la grande horloge de Valcendre s'est arrêtée. Ses 30 rouages ont roulé dans toute la ville, et chaque habitant ne rend le sien qu'à qui résout son énigme.
+Un jeu d'énigmes tout en pixel art. Cette nuit, la grande horloge de Valcendre s'est arrêtée. Ses 30 rouages ont roulé dans toute la ville, et chaque habitant ne rend le sien qu'à qui résout son énigme.
 
 - **Trois quartiers**, chacun avec son habitant :
   - le Marché et Mme Brindille ;

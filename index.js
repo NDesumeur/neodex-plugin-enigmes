@@ -1,106 +1,199 @@
-// Valcendre : l'horloge aux énigmes. Un jeu d'énigmes original : la grande horloge de Valcendre s'est arrêtée, chaque énigme résolue
-// rend un rouage. 30 énigmes en trois quartiers (le Marché, le Port, la Tour), des indices payés en bougies, des énigmes à manipuler.
+// Valcendre : l'horloge aux énigmes. La grande horloge de Valcendre s'est arrêtée ; chaque énigme résolue rend un rouage.
+// 30 énigmes en trois quartiers (le Marché, le Port, la Tour), des indices payés en bougies, des énigmes à manipuler.
+// Tout est en pixel art dessiné ici, pixel par pixel (cadres, boutons, personnages, ville, horloge), agrandi sans lissage.
 // Plugin autonome : seulement la permission « storage » (il tourne dans le bac à sable de NeoBase).
 export default async function (ctx) {
-  const el = ctx.el, $ = s => ctx.view.querySelector(s);
+  const el = ctx.el;
+  const SC = 3;  // un pixel du dessin = 3 pixels à l'écran
+
+  /* ---------- la palette ---------- */
+  const C = {
+    k: '#140c1c', d: '#2b1d33', D: '#3e2a4a', n: '#0d1430', N: '#172452', m: '#24346e', M: '#34488c',
+    y: '#f2c25b', Y: '#c48a2c', z: '#7a4e1c', p: '#f3e2b8', P: '#d9bf8c', q: '#a8875a', Q: '#6b5434',
+    w: '#fff4dc', W: '#c9b8a0', f: '#f2c9a0', F: '#c9926a', r: '#d8584a', R: '#8a2c2c', g: '#5fbf6a', G: '#2e7a46',
+    a: '#d9a13a', c: '#28406e', b: '#8a5a34', s: '#e8e0d0', S: '#3d6b9a', h: '#5a3424', v: '#6a3f8a', V: '#9a6ac0', l: '#ffd86b', o: '#ff9b3d',
+  };
+  const cv = (w, h) => Object.assign(document.createElement('canvas'), { width: w, height: h });
+  // un dessin en lettres (une lettre = une couleur de la palette, « . » = transparent), agrandi sans lissage
+  function sprite(rows, scale = SC, pal = C) {
+    const c = cv(rows[0].length * scale, rows.length * scale), g = c.getContext('2d');
+    rows.forEach((r, y) => [...r].forEach((ch, x) => { if (pal[ch]) { g.fillStyle = pal[ch]; g.fillRect(x * scale, y * scale, scale, scale); } }));
+    c.className = 'spr'; return c;
+  }
+  // un cadre de 12 x 12 pixels pour border-image : coins coupés, contour noir, liseré clair en haut à gauche, sombre en bas à droite
+  function frame(fill, light, dark, rivet) {
+    const c = cv(12, 12), g = c.getContext('2d');
+    for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) {
+      const dx = Math.min(x, 11 - x), dy = Math.min(y, 11 - y); let col;
+      if (dx + dy < 2) continue;
+      if (dx === 0 || dy === 0 || dx + dy === 2) col = C.k;
+      else if (dx === 1 || dy === 1) col = (y === 10 || x === 10) ? dark : light;
+      else col = fill;
+      if (rivet && dx === 2 && dy === 2) col = rivet;
+      g.fillStyle = col; g.fillRect(x, y, 1, 1);
+    }
+    return c.toDataURL();
+  }
+  const F = {
+    parch: frame(C.p, C.w, C.P, C.q), brass: frame(C.Y, C.y, C.z, C.l), brassH: frame(C.y, C.l, C.Y, C.w), brassP: frame(C.z, C.Y, C.k, C.y),
+    night: frame(C.N, C.M, C.n, C.Y), nightH: frame(C.m, C.M, C.n, C.y), dark: frame(C.d, C.D, C.k, C.Y), green: frame(C.G, C.g, C.k, C.l), well: frame(C.P, C.q, C.w),
+  };
+  const bi = (u, w = 4) => `border:${w * SC}px solid transparent;border-image:url(${u}) 4 fill / ${w * SC}px stretch`;
+
+  /* ---------- le style ---------- */
+  const font = document.createElement('link'); font.rel = 'stylesheet'; font.href = 'https://fonts.googleapis.com/css2?family=Jersey+10&family=VT323&display=swap'; document.head.append(font);
   const css = el('style');
   css.textContent = `
-  .vc{--nuit:#0f1726;--nuit2:#17233a;--cuivre:#c98a4b;--cuivre2:#e8b77a;--papier:#efe4c9;--papier2:#e2d3ae;--encre:#2a2018;--rouge:#a8402e;--vert:#3f7a4a;
-      position:relative;min-height:100%;box-sizing:border-box;padding:26px 18px 40px;color:var(--papier);font:16px/1.5 Georgia,'Times New Roman',serif;
-      background:radial-gradient(ellipse at 50% -10%,#24365a 0,var(--nuit) 60%) fixed;overflow:hidden}
-  .vc *{box-sizing:border-box}
-  .vc .bg{position:absolute;inset:0;pointer-events:none;opacity:.07}
-  .vc .bg svg{position:absolute;animation:vcTurn 60s linear infinite}
-  .vc .bg svg.r{animation-direction:reverse;animation-duration:44s}
-  @keyframes vcTurn{to{transform:rotate(360deg)}}
-  .vc .wrap{position:relative;max-width:860px;margin:0 auto}
-  .vc h1{font:italic 700 38px/1.1 Georgia,serif;margin:0;color:var(--cuivre2);letter-spacing:.5px;text-shadow:0 2px 0 #0008}
-  .vc h2{font:italic 700 24px Georgia,serif;margin:0 0 4px;color:var(--cuivre2)}
-  .vc .sub{color:#b9c3d6;font-style:italic}
-  .vc .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 20px}
+  html,body{margin:0;min-height:100%;background:${C.n}}
+  .vc{position:relative;min-height:100vh;box-sizing:border-box;padding:18px 16px 40px;color:${C.p};font:22px/24px VT323,monospace;image-rendering:pixelated;-webkit-font-smoothing:none;user-select:none;overflow:hidden}
+  .vc *{box-sizing:border-box;image-rendering:pixelated}
+  .vc canvas.sky{position:absolute;left:0;top:0;width:100%;height:100%;z-index:0}
+  .vc .wrap{position:relative;z-index:1;max-width:900px;margin:0 auto}
+  .vc .spr{display:block;flex:none}
+  .vc h1,.vc h2,.vc .big{font-family:'Jersey 10',VT323,monospace;font-weight:400;letter-spacing:1px;margin:0}
+  .vc h1{font-size:72px;line-height:64px;color:${C.y};text-shadow:4px 4px 0 ${C.k},-2px 0 0 ${C.k},2px 0 0 ${C.k},0 -2px 0 ${C.k}}
+  .vc h2{font-size:34px;line-height:34px;color:${C.y};text-shadow:3px 3px 0 ${C.k}}
+  .vc .parch h2{color:${C.R};text-shadow:2px 2px 0 ${C.P}}
+  .vc .sub{color:${C.l};text-shadow:2px 2px 0 ${C.k};font-size:26px}
+  .vc .parch{${bi(F.parch)};color:${C.k};padding:6px 10px}
+  .vc .plaque{${bi(F.brass)};color:${C.k};padding:0 8px}
+  .vc .night{${bi(F.night)};padding:4px 8px}
+  .vc .bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px}
   .vc .bar .sp{flex:1}
-  .vc .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border:1px solid #c98a4b88;border-radius:20px;color:var(--cuivre2);font-size:14px;background:#0006}
-  .vc button{font:600 15px Georgia,serif;color:var(--encre);background:linear-gradient(#f0c88f,#c98a4b);border:0;border-radius:6px;padding:9px 18px;cursor:pointer;
-      box-shadow:0 3px 0 #7a4f26,0 5px 10px #0006;transition:transform .08s,filter .15s}
-  .vc button:hover{filter:brightness(1.08)} .vc button:active{transform:translateY(2px);box-shadow:0 1px 0 #7a4f26}
-  .vc button.ghost{background:transparent;color:var(--cuivre2);box-shadow:inset 0 0 0 1px #c98a4b99}
-  .vc button:disabled{opacity:.45;cursor:default;filter:none}
-  .vc .paper{position:relative;color:var(--encre);background:var(--papier);border-radius:4px;padding:26px 28px;
-      box-shadow:0 0 0 1px #0002,0 18px 40px #0008,inset 0 0 60px #c4a77266;background-image:repeating-linear-gradient(0deg,transparent 0 31px,#8a6a3a14 31px 32px)}
-  .vc .paper:before{content:'';position:absolute;inset:8px;border:1px solid #8a6a3a55;border-radius:2px;pointer-events:none}
-  .vc .title{text-align:center;padding:40px 0 10px}
-  .vc .title .clock{width:220px;height:220px;margin:0 auto 18px;display:block;filter:drop-shadow(0 10px 30px #c98a4b44)}
-  .vc .title p{max-width:560px;margin:14px auto 26px;color:#cfd6e4}
-  .vc .districts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
-  .vc .dist{cursor:pointer;transition:transform .15s}
-  .vc .dist:hover{transform:translateY(-3px) rotate(-.4deg)}
-  .vc .dist.lock{cursor:default;filter:grayscale(1) brightness(.6)} .vc .dist.lock:hover{transform:none}
-  .vc .dist .who{display:flex;gap:12px;align-items:center;margin-top:10px}
-  .vc .dist svg.face{width:56px;height:56px;flex:none}
-  .vc .prog{height:8px;border-radius:4px;background:#8a6a3a33;margin-top:12px;overflow:hidden} .vc .prog i{display:block;height:100%;background:var(--cuivre)}
-  .vc .meds{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-top:18px}
-  .vc .med{cursor:pointer;text-align:center;padding:16px 10px 12px;border-radius:10px;background:var(--nuit2);box-shadow:inset 0 0 0 1px #c98a4b55;transition:transform .12s,box-shadow .12s}
-  .vc .med:hover{transform:translateY(-2px);box-shadow:inset 0 0 0 1px var(--cuivre2),0 8px 18px #0007}
-  .vc .med b{display:block;font:italic 700 30px Georgia,serif;color:var(--cuivre2)}
-  .vc .med span{display:block;font-size:13px;color:#cfd6e4;margin-top:2px}
-  .vc .med.ok{background:linear-gradient(#2a3c2e,#1d2b22);box-shadow:inset 0 0 0 1px #7fbf8a88} .vc .med.ok b{color:#9fdcaa}
-  .vc .med small{display:block;font-size:12px;color:#9aa6bd;margin-top:6px}
-  .vc .pz{display:grid;grid-template-columns:1fr;gap:16px}
-  .vc .pz .head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid #8a6a3a55;padding-bottom:10px;margin-bottom:14px}
-  .vc .pz .num{font:italic 700 40px Georgia,serif;color:var(--rouge);line-height:1}
-  .vc .pz .head h2{color:var(--encre)} .vc .pz .val{margin-left:auto;font-style:italic;color:#6b5434}
-  .vc .pz .q{font-size:18px;white-space:pre-line}
-  .vc .pz .says{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;font-style:italic;color:#5a4630}
-  .vc .pz .says svg{width:46px;height:46px;flex:none}
-  .vc .pz .fig{display:flex;justify-content:center;margin:14px 0}
-  .vc .pz .fig svg{max-width:100%}
-  .vc .ans{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px}
-  .vc .ans input{font:18px Georgia,serif;padding:9px 12px;border:0;border-bottom:2px solid var(--encre);background:#fff6;width:200px;color:var(--encre);outline:none}
-  .vc .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;width:100%}
-  .vc .opts button{background:#fff7;color:var(--encre);box-shadow:inset 0 0 0 1px #8a6a3a88} .vc .opts button:hover{background:#fff}
-  .vc .stamp{position:absolute;right:24px;top:70px;font:italic 900 34px Georgia,serif;padding:4px 16px;border:4px solid;border-radius:8px;transform:rotate(-12deg) scale(2.2);opacity:0;pointer-events:none;transition:transform .25s cubic-bezier(.2,1.6,.4,1),opacity .2s}
-  .vc .stamp.on{opacity:.85;transform:rotate(-12deg) scale(1)} .vc .stamp.good{color:var(--vert)} .vc .stamp.bad{color:var(--rouge)}
-  .vc .hints{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
-  .vc .hint{flex:1 1 220px;padding:12px 14px;border-radius:6px;background:#0f172699;color:#e9edf5;font-size:15px}
-  .vc .hint.closed{cursor:pointer;color:var(--cuivre2);text-align:center;background:#0f1726cc;box-shadow:inset 0 0 0 1px #c98a4b66}
-  .vc .why{margin-top:18px;padding:14px 16px;border-left:4px solid var(--vert);background:#3f7a4a1a;color:var(--encre)}
-  .vc .msg{min-height:24px;margin-top:8px;font-style:italic;color:var(--rouge)}
-  .vc .board{display:inline-grid;gap:8px;padding:14px;border-radius:10px;background:#2a2018}
-  .vc .lamp{width:58px;height:58px;border-radius:50%;cursor:pointer;background:radial-gradient(circle at 40% 35%,#4a3b2a,#1d1610);box-shadow:inset 0 0 0 3px #6b5434;transition:background .2s,box-shadow .2s}
-  .vc .lamp.on{background:radial-gradient(circle at 40% 35%,#fff6c8,#f2b84b 55%,#b36a1c);box-shadow:inset 0 0 0 3px #f6d58e,0 0 18px #f2b84b99}
-  .vc .tile{width:70px;height:70px;display:flex;align-items:center;justify-content:center;font:italic 700 28px Georgia,serif;color:var(--encre);cursor:pointer;
-      background:linear-gradient(135deg,#d9b07a,#a87842);border-radius:4px;box-shadow:inset 0 0 0 2px #7a4f26,inset 3px 3px 0 #f0d3a466;transition:transform .12s}
-  .vc .tile.empty{background:none;box-shadow:none;cursor:default}
-  .vc .magic input{width:64px;height:64px;text-align:center;font:italic 700 28px Georgia,serif;border:0;border-radius:4px;background:var(--papier2);color:var(--encre);outline:none}
-  .vc .magic input:focus{box-shadow:0 0 0 2px var(--cuivre)}
-  .vc .final{text-align:center;padding:30px 0}
-  .vc .final .clock{width:260px;height:260px}
-  @media (max-width:600px){ .vc h1{font-size:30px} .vc .paper{padding:20px 16px} .vc .lamp{width:46px;height:46px} .vc .tile{width:58px;height:58px} }`;
+  .vc .chip{display:inline-flex;align-items:center;gap:6px;${bi(F.dark, 3)};padding:0 6px;color:${C.l};text-shadow:2px 2px 0 ${C.k};font-size:22px;line-height:22px}
+  .vc button{font:24px/24px VT323,monospace;color:${C.k};${bi(F.brass)};padding:2px 10px;min-height:44px;cursor:pointer;background:none;text-shadow:1px 1px 0 ${C.l}}
+  .vc button:hover{border-image-source:url(${F.brassH})}
+  .vc button:active{border-image-source:url(${F.brassP});color:${C.l};text-shadow:1px 1px 0 ${C.k};transform:translateY(${SC}px)}
+  .vc button.dark{border-image-source:url(${F.night});color:${C.l};text-shadow:2px 2px 0 ${C.k}}
+  .vc button.dark:hover{border-image-source:url(${F.nightH})}
+  .vc button:disabled{cursor:default;filter:saturate(.3) brightness(.8);transform:none}
+  .vc .title{text-align:center;padding:30px 0 10px;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .vc .title p{max-width:600px;margin:8px auto 14px;font-size:24px;line-height:26px}
+  .vc .districts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .vc .dist{cursor:pointer;display:flex;flex-direction:column;gap:6px}
+  .vc .dist:hover{transform:translateY(-${SC}px)}
+  .vc .dist.lock{cursor:default;filter:grayscale(1) brightness(.55)} .vc .dist.lock:hover{transform:none}
+  .vc .who{display:flex;gap:10px;align-items:center}
+  .vc .blurb{color:${C.Q};font-size:21px;line-height:22px}
+  .vc .prog{display:flex;gap:${SC}px;margin-top:4px} .vc .prog i{flex:1;height:${3 * SC}px;background:${C.P};box-shadow:0 0 0 ${SC}px ${C.q}} .vc .prog i.on{background:${C.g};box-shadow:0 0 0 ${SC}px ${C.G}}
+  .vc .meds{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+  .vc .med{cursor:pointer;display:flex;flex-direction:column;align-items:center;text-align:center;${bi(F.night)};padding:4px 4px 6px}
+  .vc .med:hover{border-image-source:url(${F.nightH})}
+  .vc .med.ok{border-image-source:url(${F.green})}
+  .vc .med .cog{position:relative;width:${24 * SC}px;height:${24 * SC}px}
+  .vc .med .cog b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:40px 'Jersey 10',monospace;color:${C.k};padding-top:4px}
+  .vc .med span{font-size:20px;line-height:20px;color:${C.p};text-shadow:2px 2px 0 ${C.k};margin-top:2px}
+  .vc .med small{font-size:18px;color:${C.l};text-shadow:2px 2px 0 ${C.k}}
+  .vc .pz .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:6px;margin-bottom:8px;box-shadow:0 ${SC}px 0 ${C.q}}
+  .vc .pz .num{font:56px/48px 'Jersey 10',monospace;color:${C.R};text-shadow:3px 3px 0 ${C.P}}
+  .vc .pz .val{margin-left:auto;color:${C.Q}}
+  .vc .pz .q{font-size:24px;line-height:26px;white-space:pre-line}
+  .vc .says{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+  .vc .bubble{position:relative;${bi(F.well, 3)};padding:2px 8px;color:${C.Q}}
+  .vc .fig{display:flex;justify-content:center;align-items:flex-end;gap:12px;margin:12px 0;flex-wrap:wrap}
+  .vc .fig .lab{display:flex;flex-direction:column;align-items:center;gap:4px;font:24px 'Jersey 10',monospace;color:${C.k}}
+  .vc .ans{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  .vc input{font:26px VT323,monospace;color:${C.k};${bi(F.well, 3)};padding:2px 6px;width:190px;outline:none;background:none}
+  .vc input:focus{border-image-source:url(${F.brassH})}
+  .vc .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;width:100%}
+  .vc .stamp{position:absolute;right:20px;top:54px;font:44px/40px 'Jersey 10',monospace;padding:4px 10px;transform:rotate(-8deg) scale(2);opacity:0;pointer-events:none;transition:transform .2s steps(4),opacity .2s steps(2);
+      box-shadow:0 0 0 ${SC}px currentColor,0 0 0 ${2 * SC}px ${C.p},0 0 0 ${3 * SC}px currentColor}
+  .vc .stamp.on{opacity:1;transform:rotate(-8deg) scale(1)} .vc .stamp.good{color:${C.G}} .vc .stamp.bad{color:${C.R}}
+  .vc .hints{display:flex;gap:8px;flex-wrap:wrap}
+  .vc .hint{flex:1 1 230px;${bi(F.dark, 3)};padding:2px 6px;color:${C.p};font-size:22px;line-height:23px;display:flex;gap:8px;align-items:flex-start}
+  .vc .hint.closed{cursor:pointer;color:${C.l};text-shadow:2px 2px 0 ${C.k};align-items:center}
+  .vc .hint.closed:hover{border-image-source:url(${F.nightH})}
+  .vc .why{margin-top:12px;${bi(F.green, 3)};padding:2px 8px;color:${C.w};text-shadow:2px 2px 0 ${C.k}}
+  .vc .msg{min-height:24px;margin-top:6px;color:${C.R}}
+  .vc .label{font:28px 'Jersey 10',monospace;color:${C.y};text-shadow:2px 2px 0 ${C.k};margin:14px 0 6px}
+  .vc .board{display:inline-grid;gap:${2 * SC}px;${bi(F.dark)};padding:${2 * SC}px}
+  .vc .board .cell{cursor:pointer;position:relative}
+  .vc .board .cell:active{transform:translateY(${SC}px)}
+  .vc .tile b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:44px 'Jersey 10',monospace;color:${C.k};text-shadow:2px 2px 0 ${C.y}}
+  .vc .magic input{width:${22 * SC}px;height:${22 * SC}px;text-align:center;font:44px 'Jersey 10',monospace;padding:0}
+  .vc .final{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+  @media (max-width:600px){ .vc h1{font-size:54px;line-height:50px} }`;
   document.head.append(css);
 
-  /* ---------- les personnages (dessinés ici, à plat) ---------- */
+  /* ---------- les personnages, 16 x 16 ---------- */
   const FACES = {
-    brindille: `<svg class="face" viewBox="0 0 64 64"><circle cx="32" cy="32" r="31" fill="#2b3d5c"/><path d="M14 30c0-14 36-14 36 0z" fill="#fff"/><ellipse cx="20" cy="22" rx="8" ry="7" fill="#fff"/><ellipse cx="32" cy="17" rx="9" ry="8" fill="#fff"/><ellipse cx="44" cy="22" rx="8" ry="7" fill="#fff"/><circle cx="32" cy="38" r="13" fill="#f2c9a0"/><circle cx="27" cy="37" r="1.8" fill="#2a2018"/><circle cx="37" cy="37" r="1.8" fill="#2a2018"/><path d="M27 43q5 4 10 0" stroke="#2a2018" stroke-width="1.8" fill="none"/><circle cx="23" cy="42" r="2.5" fill="#e89a8a"/><circle cx="41" cy="42" r="2.5" fill="#e89a8a"/><path d="M16 64c2-10 30-10 32 0" fill="#c98a4b"/></svg>`,
-    octave: `<svg class="face" viewBox="0 0 64 64"><circle cx="32" cy="32" r="31" fill="#1d3b47"/><circle cx="32" cy="37" r="13" fill="#d9a77a"/><path d="M17 31h30l-3-9H20z" fill="#24324a"/><rect x="14" y="29" width="36" height="4" rx="2" fill="#1a2436"/><circle cx="27" cy="37" r="1.8" fill="#2a2018"/><circle cx="37" cy="37" r="1.8" fill="#2a2018"/><path d="M22 44q10 8 20 0v4q-10 8-20 0z" fill="#8a5a3a"/><path d="M16 64c2-10 30-10 32 0" fill="#3d6b7a"/><path d="M26 54l6 6 6-6" stroke="#fff" stroke-width="2" fill="none"/></svg>`,
-    yse: `<svg class="face" viewBox="0 0 64 64"><circle cx="32" cy="32" r="31" fill="#3a2a4a"/><path d="M16 40c-2-20 34-20 32 0v14H16z" fill="#5a3a2a"/><circle cx="32" cy="36" r="12" fill="#f0cfae"/><circle cx="27" cy="36" r="4" fill="none" stroke="#c98a4b" stroke-width="1.6"/><circle cx="37" cy="36" r="4" fill="none" stroke="#c98a4b" stroke-width="1.6"/><path d="M31 36h2" stroke="#c98a4b" stroke-width="1.6"/><circle cx="27" cy="36" r="1.4" fill="#2a2018"/><circle cx="37" cy="36" r="1.4" fill="#2a2018"/><path d="M29 43q3 2 6 0" stroke="#2a2018" stroke-width="1.6" fill="none"/><path d="M16 64c2-10 30-10 32 0" fill="#6a4a8a"/></svg>`,
+    brindille: ['....kkkkkkkk....', '...kwwwwwwwwk...', '..kwwwwwwwwwwk..', '..kwwWwwwwWwwk..', '...kwwwwwwwwk...', '...kWWWWWWWWk...', '...kffffffffk...', '..kfffffffffFk..',
+      '..kffkfffkffFk..', '..kfrffffffrFk..', '..kfffkkkfffFk..', '...kffffffffk...', '....kkffffkk....', '..kkaaakkaaakk..', '.kaaaaaaaaaaaak.', '.kaaaaaaaaaaaak.'],
+    octave: ['................', '....kkkkkkkk....', '...kccccccccck..', '..kcccccccccck..', '.kkkkkkkkkkkkkk.', '...kffffffffk...', '..kfffffffffFk..', '..kffkfffkffFk..',
+      '..kfffffffffFk..', '..kbbffffffbbk..', '..kbbbkkkkbbbk..', '...kbbbbbbbbk...', '....kkbbbbkk....', '..kkssskkssskk..', '.ksSsSsSsSsSsSk.', '.kSsSsSsSsSsSsk.'],
+    yse: ['.....kkkkkk.....', '....khhhhhhk....', '...khhhhhhhhk...', '..khhhhhhhhhhk..', '..khhffffffhhk..', '..khffffffffhk..', '..khyyyfyyyFhk..', '..khykyfykyFhk..',
+      '..khyyyfyyyFhk..', '..khffffffffhk..', '..khfffkkfffhk..', '...hkffffffkh...', '...hhkkkkkkhh...', '..kkvvvkkvvvkk..', '.kvvvvvyyvvvvvk.', '.kvvvvvvvvvvvvk.'],
   };
-  const gearPath = (cx, cy, r, teeth) => { let d = ''; const st = Math.PI * 2 / teeth, R = r * 1.2, pt = (a, rr) => (cx + Math.cos(a) * rr).toFixed(1) + ' ' + (cy + Math.sin(a) * rr).toFixed(1); for (let i = 0; i < teeth; i++) { const a = i * st; d += (i ? 'L' : 'M') + pt(a, r) + 'L' + pt(a + st * .12, R) + 'L' + pt(a + st * .42, R) + 'L' + pt(a + st * .54, r); } return d + 'Z'; };  // des dents trapézoïdales, comme une vraie roue d'horloge
-  // l'horloge de Valcendre : ses aiguilles bougent quand elle est réparée
-  const clockSvg = (repaired, cls = 'clock') => `<svg class="${cls}" viewBox="0 0 200 200"><path d="${gearPath(100, 100, 92, 24)}" fill="#7a4f26"/><circle cx="100" cy="100" r="86" fill="#efe4c9" stroke="#c98a4b" stroke-width="6"/>
-    ${Array.from({ length: 12 }, (_, i) => { const a = i / 12 * Math.PI * 2; return `<text x="${100 + Math.sin(a) * 68}" y="${100 - Math.cos(a) * 68 + 7}" text-anchor="middle" font-family="Georgia" font-style="italic" font-size="18" fill="#2a2018">${['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'][i]}</text>`; }).join('')}
-    <g style="transform-origin:100px 100px;${repaired ? 'animation:vcTurn 12s linear infinite' : 'transform:rotate(-38deg)'}"><path d="M97 100L100 36L103 100z" fill="#2a2018"/></g>
-    <g style="transform-origin:100px 100px;${repaired ? 'animation:vcTurn 144s linear infinite' : 'transform:rotate(112deg)'}"><path d="M96 100L100 56L104 100z" fill="#a8402e"/></g>
-    <circle cx="100" cy="100" r="6" fill="#c98a4b"/>${repaired ? '' : '<path d="M60 40l30 40-12 4 26 40" stroke="#2a2018" stroke-width="2" fill="none" opacity=".55"/>'}</svg>`;
+  const face = (who, s = 4) => { const box = el('div'); box.style.cssText = `${bi(F.night, 3)};padding:0;flex:none`; box.append(sprite(FACES[who], s)); return box; };
+  const CANDLE = ['..o..', '.oly.', '.lwl.', '..y..', '.kwk.', '.kWk.', '.kWk.', '.kWk.', 'kkkkk'];
+  const candle = () => sprite(CANDLE, 3);
 
-  /* ---------- les figures de certaines énigmes ---------- */
-  const FIG = {
-    gears: (() => { let s = '<svg viewBox="0 0 470 110" width="470">'; for (let i = 0; i < 5; i++) { const cx = 50 + i * 92; s += `<path d="${gearPath(cx, 55, 38, 12)}" fill="${i % 2 ? '#a87842' : '#c98a4b'}" stroke="#7a4f26" stroke-width="2"/><circle cx="${cx}" cy="55" r="9" fill="#efe4c9"/><text x="${cx}" y="61" text-anchor="middle" font-family="Georgia" font-style="italic" font-weight="700" font-size="16" fill="#2a2018">${'ABCDE'[i]}</text>`; } return s + '<path d="M20 12a40 40 0 0 1 50 0" stroke="#a8402e" stroke-width="3" fill="none" marker-end="url(#ar)"/><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#a8402e"/></marker></defs></svg>'; })(),
-    grid: '<svg viewBox="0 0 150 150" width="150"><g stroke="#2a2018" stroke-width="3" fill="none"><rect x="5" y="5" width="140" height="140"/><path d="M51.7 5V145M98.3 5V145M5 51.7H145M5 98.3H145"/></g></svg>',
-    baskets: `<svg viewBox="0 0 420 120" width="420">${['POMMES', 'POIRES', 'MÉLANGE'].map((t, i) => `<g transform="translate(${20 + i * 135} 10)"><path d="M10 40h100l-12 66H22z" fill="#a87842" stroke="#7a4f26" stroke-width="2"/><path d="M22 40q38-46 76 0" stroke="#7a4f26" stroke-width="4" fill="none"/><rect x="18" y="60" width="84" height="22" fill="#efe4c9" stroke="#2a2018"/><text x="60" y="76" text-anchor="middle" font-family="Georgia" font-size="13" font-weight="700" fill="#2a2018">${t}</text></g>`).join('')}</svg>`,
-    well: '<svg viewBox="0 0 160 180" width="140"><rect x="30" y="10" width="100" height="165" fill="#1d1610"/><path d="M30 10v165M130 10v165" stroke="#7a4f26" stroke-width="8"/><g fill="#5a4630" font-family="Georgia" font-size="11">' + Array.from({ length: 11 }, (_, i) => `<path d="M30 ${10 + i * 15}h10" stroke="#c98a4b"/><text x="138" y="${14 + i * 15}">${10 - i} m</text>`).join('') + '</g><ellipse cx="80" cy="166" rx="12" ry="7" fill="#9fdcaa"/><path d="M84 160q8-14 0-16" stroke="#9fdcaa" stroke-width="3" fill="none"/></svg>',
-  };
+  /* ---------- dessiner au pixel ---------- */
+  const px = (g, x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
+  function line(g, x0, y0, x1, y1, col) { x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1); const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy; for (;;) { px(g, x0, y0, col); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } }
+  const big = (c, s = SC) => { c.style.width = c.width * s + 'px'; c.style.height = c.height * s + 'px'; c.className = 'spr'; return c; };
+  // une roue dentée de rayon r (dents carrées), utilisée pour les médailles, l'horloge et les figures
+  function gear(g, cx, cy, r, teeth, body, light, dark, phase = 0) {
+    for (let y = -r - 3; y <= r + 3; y++) for (let x = -r - 3; x <= r + 3; x++) {
+      const d = Math.hypot(x + .5, y + .5), a = (Math.atan2(y + .5, x + .5) / (Math.PI * 2) * teeth + phase + 10) % 1;
+      if (d > r + 2.5 || (d > r && a > .5)) continue;
+      const edge = d > r - 1 && (d > r || a > .5) || d > r + 1.5;
+      px(g, cx + x, cy + y, edge ? C.k : d > r - 2 ? (x + y < 0 ? light : dark) : body);
+    }
+    for (let y = -2; y <= 2; y++) for (let x = -2; x <= 2; x++) if (x * x + y * y <= 5) px(g, cx + x, cy + y, x * x + y * y > 2 ? C.k : C.z);
+  }
+  // l'horloge de Valcendre : 48 x 48, aiguilles arrêtées, ou qui tournent une fois réparée
+  function clock(repaired, s = 4) {
+    const c = cv(48, 48), g = c.getContext('2d');
+    const draw = () => {
+      g.clearRect(0, 0, 48, 48);
+      gear(g, 24, 24, 20, 16, C.Y, C.y, C.z);
+      for (let y = -17; y <= 17; y++) for (let x = -17; x <= 17; x++) { const d = Math.hypot(x + .5, y + .5); if (d <= 17) px(g, 24 + x, 24 + y, d > 16 ? C.k : d > 15 ? C.P : C.p); }
+      for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; px(g, 24 + Math.round(Math.sin(a) * 13.5) - (Math.sin(a) < 0 ? 1 : 0), 24 - Math.round(Math.cos(a) * 13.5), i % 3 ? C.q : C.k); }
+      const t = repaired ? Date.now() / 1000 : 0, am = repaired ? t / 4 % 1 * Math.PI * 2 : -.66, ah = repaired ? t / 48 % 1 * Math.PI * 2 : 1.95;
+      line(g, 24, 24, 24 + Math.sin(am) * 12, 24 - Math.cos(am) * 12, C.k);
+      line(g, 24, 24, 24 + Math.sin(ah) * 8, 24 - Math.cos(ah) * 8, C.R);
+      px(g, 24, 24, C.y); px(g, 23, 24, C.Y);
+      if (!repaired) { line(g, 13, 13, 18, 20, C.q); line(g, 18, 20, 16, 24, C.q); }
+    };
+    draw(); if (repaired) { const t = setInterval(() => c.isConnected ? draw() : clearInterval(t), 250); }
+    return big(c, s);
+  }
+  // une médaille-rouage avec le numéro de l'énigme
+  function cog(ok) { const c = cv(24, 24), g = c.getContext('2d'); gear(g, 12, 12, 9, 10, ok ? C.g : C.Y, ok ? '#9fe8a8' : C.y, ok ? C.G : C.z, .25); for (let y = -5; y <= 5; y++) for (let x = -5; x <= 5; x++) if (Math.hypot(x + .5, y + .5) <= 5.5) px(g, 12 + x, 12 + y, C.p); return big(c); }
 
-  /* ---------- les énigmes ---------- */
+  /* ---------- le ciel de Valcendre : nuit, étoiles, toits et la tour de l'horloge ---------- */
+  const sky = cv(10, 10); sky.className = 'sky';
+  function rnd(seed) { let x = seed; return () => (x = (x * 16807) % 2147483647) / 2147483647; }
+  function drawSky() {
+    const W = Math.ceil(sky.offsetWidth / SC / 1) || 300, H = Math.ceil(sky.offsetHeight / SC) || 200;
+    if (sky.width !== W || sky.height !== H) { sky.width = W; sky.height = H; }
+    const g = sky.getContext('2d'), R = rnd(7), bands = [C.n, '#101a3c', C.N, '#1e2d5e', C.m];
+    for (let y = 0; y < H; y++) { const f = Math.min(bands.length - 1, y / H * 1.6 * bands.length), i = Math.floor(f), fr = f - i; for (let x = 0; x < W; x++) px(g, x, y, bands[Math.min(bands.length - 1, i + ((x + y) % 2 === 0 && fr > .5 ? 1 : 0) + ((x % 4 === 0 && y % 2 === 0 && fr > .75) ? 1 : 0))] || C.m); }
+    const tw = Math.floor(Date.now() / 700);
+    for (let i = 0; i < W * H / 260; i++) { const x = Math.floor(R() * W), y = Math.floor(R() * H * .55), on = (i * 7 + tw) % 9; px(g, x, y, on === 0 ? C.N : on < 3 ? C.l : C.w); if (i % 11 === 0 && on > 2) { px(g, x - 1, y, C.M); px(g, x + 1, y, C.M); px(g, x, y - 1, C.M); px(g, x, y + 1, C.M); } }
+    // la lune
+    const mx = Math.floor(W * .82), my = Math.floor(H * .14);
+    for (let y = -6; y <= 6; y++) for (let x = -6; x <= 6; x++) { const d = Math.hypot(x, y); if (d <= 6) px(g, mx + x, my + y, Math.hypot(x + 3, y - 2) <= 5 ? '#101a3c' : d > 5 ? C.y : C.l); }
+    // les toits
+    const base = Math.floor(H * .72); let x = 0; const R2 = rnd(31);
+    while (x < W) {
+      const w = 10 + Math.floor(R2() * 14), h = 10 + Math.floor(R2() * 22), top = base - h;
+      for (let yy = top; yy < H; yy++) for (let xx = x; xx < Math.min(W, x + w); xx++) px(g, xx, yy, xx === x ? C.k : C.d);
+      for (let k = 0; k < w / 2 + 1; k++) for (let xx = x + k; xx < x + w - k; xx++) px(g, xx, top - k, k === Math.floor(w / 2) || xx === x + k || xx === x + w - k - 1 ? C.k : C.D);
+      for (let yy = top + 3; yy < base - 2; yy += 5) for (let xx = x + 2; xx < x + w - 3; xx += 4) if (R2() < .45) { px(g, xx, yy, C.l); px(g, xx + 1, yy, C.o); px(g, xx, yy + 1, C.o); px(g, xx + 1, yy + 1, C.o); }
+      x += w;
+    }
+    // la tour de l'horloge, au milieu
+    const tx = Math.floor(W / 2), tw2 = 14, ttop = Math.floor(H * .3);
+    for (let yy = ttop; yy < H; yy++) for (let xx = tx - tw2 / 2; xx < tx + tw2 / 2; xx++) px(g, xx, yy, xx === tx - tw2 / 2 || xx === tx + tw2 / 2 - 1 ? C.k : C.D);
+    for (let k = 0; k < 12; k++) for (let xx = tx - tw2 / 2 + Math.floor(k / 2); xx < tx + tw2 / 2 - Math.floor(k / 2); xx++) px(g, xx, ttop - k, C.k);
+    for (let y = -5; y <= 5; y++) for (let xx = -5; xx <= 5; xx++) { const d = Math.hypot(xx, y); if (d <= 5) px(g, tx + xx, ttop + 8 + y, d > 4 ? C.Y : C.p); }
+    px(g, tx, ttop + 8, C.k); px(g, tx, ttop + 5, C.k); px(g, tx + 1, ttop + 8, C.k); px(g, tx + 2, ttop + 8, C.k);
+  }
+  const skyTimer = setInterval(() => sky.isConnected ? drawSky() : clearInterval(skyTimer), 700);
+  addEventListener('resize', () => drawSky());
+
   const D = [
     { id: 'marche', name: 'Le Marché', who: 'brindille', whoName: 'Mme Brindille, boulangère', blurb: 'Sous les auvents, les marchands ont toujours une question en réserve.' },
     { id: 'port', name: 'Le Port', who: 'octave', whoName: 'Octave, le passeur', blurb: 'Les quais sentent le sel et les cordages. Octave n\'aide que ceux qui réfléchissent.' },
@@ -155,23 +248,33 @@ export default async function (ctx) {
   const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’-]/g, ' ').replace(/\s+/g, ' ').trim();
 
   const root = el('div', 'vc'); ctx.view.replaceChildren(root);
-  const bg = el('div', 'bg'); bg.innerHTML = `<svg width="520" height="520" style="left:-160px;top:-120px" viewBox="0 0 200 200"><path d="${gearPath(100, 100, 80, 18)}" fill="#c98a4b"/></svg><svg class="r" width="380" height="380" style="right:-120px;bottom:-100px" viewBox="0 0 200 200"><path d="${gearPath(100, 100, 80, 14)}" fill="#c98a4b"/></svg>`;
-  const wrap = el('div', 'wrap'); root.append(bg, wrap);
-  const top = (back, label) => { const b = el('div', 'bar'); if (back) { const k = el('button', 'ghost', '← ' + label); k.onclick = back; b.append(k); } b.append(el('span', 'sp'), el('span', 'chip', '⚙ ' + Object.keys(st.solved).length + ' / ' + TOTAL + ' rouages'), el('span', 'chip', '✦ ' + score() + ' étincelles'), el('span', 'chip', '🕯 ' + st.bougies + ' bougies')); return b; };
+  const wrap = el('div', 'wrap'); root.append(sky, wrap);
+  requestAnimationFrame(drawSky);
+  const COG_ICON = ['..k.k..', '.kykyk.', 'kyyyyyk', '.ykkky.', 'kyyyyyk', '.kykyk.', '..k.k..'];
+  const chip = (icon, text) => { const c = el('span', 'chip'); c.append(icon, text); return c; };
+  const top = (back, label) => {
+    const b = el('div', 'bar'); if (back) { const k = el('button', 'dark', '< ' + label); k.onclick = back; b.append(k); }
+    b.append(el('span', 'sp'), chip(sprite(COG_ICON, 3), Object.keys(st.solved).length + '/' + TOTAL), chip(sprite(['..l..', '.lyl.', 'lyYyl', '.lyl.', '..l..'], 3), score() + ' étincelles'), chip(candle(), st.bougies + ' bougies'));
+    return b;
+  };
   const scrollTop = () => { try { root.scrollIntoView({ block: 'start' }); } catch {} };
 
   function title() {
-    const t = el('div', 'title'); const done = Object.keys(st.solved).length;
-    t.innerHTML = clockSvg(done === TOTAL) + '<h1>Valcendre</h1><div class="sub">l\'horloge aux énigmes</div>';
-    t.append(el('p', '', done === TOTAL ? 'La grande horloge bat de nouveau. Valcendre te doit une fière chandelle — tu peux revenir chercher les énigmes que tu veux revoir.' : 'Cette nuit, la grande horloge de Valcendre s\'est arrêtée. Ses 30 rouages ont roulé dans toute la ville. Les habitants les ont ramassés… mais chacun ne rend le sien qu\'à qui résout son énigme.'));
-    const go = el('button', '', done ? 'Continuer' : 'Commencer'); go.onclick = map; t.append(go);
-    wrap.replaceChildren(t);
+    const t = el('div', 'title'), done = Object.keys(st.solved).length;
+    t.append(clock(done === TOTAL, 5), el('h1', '', 'VALCENDRE'), el('div', 'sub', 'l\'horloge aux énigmes'));
+    const p = el('div', 'parch'); p.style.maxWidth = '640px';
+    p.append(el('p', '', done === TOTAL ? 'La grande horloge bat de nouveau. Valcendre te doit une fière chandelle : reviens quand tu veux revoir une énigme.' : 'Cette nuit, la grande horloge de Valcendre s\'est arrêtée. Ses 30 rouages ont roulé dans toute la ville. Les habitants les ont ramassés… mais chacun ne rend le sien qu\'à qui résout son énigme.'));
+    const go = el('button', '', done ? 'CONTINUER' : 'COMMENCER'); go.onclick = map;
+    t.append(p, go); wrap.replaceChildren(t);
   }
   function map() {
     const g = el('div', 'districts');
     D.forEach((d, i) => {
-      const open = unlocked(i), n = solvedIn(d.id), c = el('div', 'paper dist' + (open ? '' : ' lock'));
-      c.innerHTML = `<h2>${d.name}</h2><div style="font-style:italic;color:#5a4630">${open ? d.blurb : 'Résous ' + UNLOCK + ' énigmes de « ' + D[i - 1].name + ' » pour y entrer.'}</div><div class="who">${FACES[d.who]}<div><b>${d.whoName}</b><br><span style="color:#6b5434">${n} / 10 rouages</span></div></div><div class="prog"><i style="width:${n * 10}%"></i></div>`;
+      const open = unlocked(i), n = solvedIn(d.id), c = el('div', 'parch dist' + (open ? '' : ' lock'));
+      const who = el('div', 'who'), txt = el('div'); txt.append(el('h2', '', d.name), el('div', 'blurb', d.whoName));
+      who.append(face(d.who, 4), txt);
+      const pr = el('div', 'prog'); for (let k = 0; k < 10; k++) pr.append(el('i', k < n ? 'on' : ''));
+      c.append(who, el('div', 'blurb', open ? d.blurb : 'Résous ' + UNLOCK + ' énigmes de « ' + D[i - 1].name + ' » pour y entrer.'), pr, el('div', 'blurb', n + ' / 10 rouages'));
       if (open) c.onclick = () => district(d);
       g.append(c);
     });
@@ -181,42 +284,56 @@ export default async function (ctx) {
   function district(d) {
     const m = el('div', 'meds');
     for (const p of P.filter(x => x.d === d.id)) {
-      const ok = st.solved[p.id], b = el('div', 'med' + (ok ? ' ok' : ''));
-      b.innerHTML = `<b>${p.n}</b><span>${p.t}</span><small>${ok ? '✔ ' + ok + ' étincelles' : (st.tries[p.id] ? 'vaut ' + worth(p) + ' (' + p.pts + ')' : 'vaut ' + p.pts)}</small>`;
-      b.onclick = () => puzzle(p, d);
-      m.append(b);
+      const ok = st.solved[p.id], b = el('div', 'med' + (ok ? ' ok' : '')), cg = el('div', 'cog');
+      cg.append(cog(!!ok), el('b', '', String(p.n)));
+      b.append(cg, el('span', '', p.t), el('small', '', ok ? ok + ' étincelles' : 'vaut ' + worth(p)));
+      b.onclick = () => puzzle(p, d); m.append(b);
     }
-    const h = el('div', 'paper'); h.innerHTML = `<div class="who" style="display:flex;gap:14px;align-items:center">${FACES[d.who]}<div><h2>${d.name}</h2><i style="color:#5a4630">${d.blurb}</i></div></div>`;
+    const h = el('div', 'parch'), who = el('div', 'who'), txt = el('div'); txt.append(el('h2', '', d.name), el('div', 'blurb', d.blurb)); who.append(face(d.who, 4), txt); h.append(who);
     wrap.replaceChildren(top(map, 'Carte'), h, m); scrollTop();
   }
 
+  /* ---------- les figures des énigmes, au pixel ---------- */
+  const FIG = {
+    gears() { const box = el('div', 'fig'); ['A', 'B', 'C', 'D', 'E'].forEach((L, i) => { const c = cv(30, 30), g = c.getContext('2d'); gear(g, 15, 15, 11, 10, i % 2 ? C.Y : C.a, C.y, C.z, i % 2 ? .5 : 0); const lab = el('div', 'lab'); lab.append(big(c), L); box.append(lab); }); return box; },
+    grid() { const c = cv(40, 40), g = c.getContext('2d'); g.fillStyle = C.P; g.fillRect(0, 0, 40, 40); for (const k of [0, 13, 26, 39]) { line(g, k, 0, k, 39, C.h); line(g, 0, k, 39, k, C.h); } const box = el('div', 'fig'); box.append(big(c, 4)); return box; },
+    baskets() {
+      const B = ['..kkkkkkkkkkkk..', '.k............k.', 'k..............k', 'kkkkkkkkkkkkkkkk', 'kbbbbbbbbbbbbbbk', 'kbhbhbhbhbhbhbhk', '.kbbbbbbbbbbbbk.', '.kbhbhbhbhbhbhk.', '.kbbbbbbbbbbbbk.', '..kbhbhbhbhbhk..', '..kkkkkkkkkkkk..'];
+      const box = el('div', 'fig'); for (const t of ['POMMES', 'POIRES', 'MÉLANGE']) { const lab = el('div', 'lab'); lab.append(sprite(B, 5), el('span', 'plaque', t)); box.append(lab); } return box;
+    },
+    well() { const c = cv(30, 46), g = c.getContext('2d'); for (let y = 0; y < 46; y++) for (let x = 0; x < 30; x++) px(g, x, y, x < 4 || x > 25 ? ((y + (x < 4 ? 0 : 2)) % 4 === 0 ? C.k : C.q) : y > 42 ? C.S : C.k); for (let m = 0; m <= 10; m++) { const y = 42 - m * 4; line(g, 4, y, 6, y, C.y); } const snail = ['..kk..', '.kyyk.', 'kyokyk', 'kykkyk', 'gggggg']; snail.forEach((r, y) => [...r].forEach((ch, x) => C[ch] && px(g, 12 + x, 38 + y, C[ch]))); const box = el('div', 'fig'), lab = el('div', 'lab'); lab.append(big(c, 4), '10 m'); box.append(lab); return box; },
+  };
+
   /* ---------- les énigmes à manipuler ---------- */
   function rng(seed) { let x = seed * 9301 + 49297; return () => (x = (x * 9301 + 49297) % 233280) / 233280; }
+  const LANTERN = [['...kk...', '..kzzk..', '.kkkkkk.', '.kDDDDk.', '.kDddDk.', '.kDddDk.', '.kDddDk.', '.kDDDDk.', '.kkkkkk.', '..kzzk..'], ['...kk...', '..kzzk..', '.kkkkkk.', '.kyyyyk.', '.kylwyk.', '.kowlok.', '.kyooyk.', '.kyyyyk.', '.kkkkkk.', '..kzzk..']];
   function lights(p, win) {
-    const N = 3, on = Array(N * N).fill(true);
+    const N = 3, on = Array(N * N).fill(true), PL = { ...C, O: C.o };
     const press = (i, s) => { const r = Math.floor(i / N), c = i % N; for (const [dr, dc] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) { const rr = r + dr, cc = c + dc; if (rr >= 0 && rr < N && cc >= 0 && cc < N) s[rr * N + cc] = !s[rr * N + cc]; } };
-    const reset = () => { on.fill(true); p.seed.forEach(i => press(i, on)); draw(); };
     const b = el('div', 'board'); b.style.gridTemplateColumns = `repeat(${N},auto)`;
-    const draw = () => b.replaceChildren(...on.map((v, i) => { const l = el('div', 'lamp' + (v ? ' on' : '')); l.onclick = () => { if (b.dataset.done) return; press(i, on); draw(); if (on.every(Boolean)) { b.dataset.done = 1; win(); } }; return l; }));
+    const draw = () => b.replaceChildren(...on.map((v, i) => { const l = el('div', 'cell lamp' + (v ? ' on' : '')); l.append(sprite(LANTERN[v ? 1 : 0], 7, PL)); l.onclick = () => { if (b.dataset.done) return; press(i, on); draw(); if (on.every(Boolean)) { b.dataset.done = 1; win(); } }; return l; }));
+    const reset = () => { on.fill(true); p.seed.forEach(i => press(i, on)); draw(); };
     reset();
-    const again = el('button', 'ghost', 'Recommencer'); again.style.color = '#7a4f26'; again.onclick = () => { delete b.dataset.done; reset(); };
+    const again = el('button', 'dark', 'RECOMMENCER'); again.onclick = () => { delete b.dataset.done; reset(); };
     return [b, again];
   }
+  const CRATE = ['kkkkkkkkkkkkkkkkkkkk', 'kyyyyyyyyyyyyyyyyyzk', 'kyYYYYYYYYYYYYYYYYzk', 'kyYbbbbbbbbbbbbbbYzk', 'kyYbhhhhhhhhhhhhbYzk', 'kyYbhbbbbbbbbbbhbYzk', 'kyYbhbbbbbbbbbbhbYzk', 'kyYbhbbbbbbbbbbhbYzk', 'kyYbhbbbbbbbbbbhbYzk', 'kyYbhbbbbbbbbbbhbYzk',
+    'kyYbhbbbbbbbbbbhbYzk', 'kyYbhbbbbbbbbbbhbYzk', 'kyYbhbbbbbbbbbbhbYzk', 'kyYbhbbbbbbbbbbhbYzk', 'kyYbhbbbbbbbbbbhbYzk', 'kyYbhhhhhhhhhhhhbYzk', 'kyYbbbbbbbbbbbbbbYzk', 'kyYYYYYYYYYYYYYYYYzk', 'kzzzzzzzzzzzzzzzzzzk', 'kkkkkkkkkkkkkkkkkkkk'];
   function slide(p, win) {
     const s = [1, 2, 3, 4, 5, 6, 7, 8, 0], r = rng(p.seed);
     const nb = i => [i - 3, i + 3, i % 3 ? i - 1 : -1, i % 3 < 2 ? i + 1 : -1].filter(j => j >= 0 && j < 9);
-    const shuffle = () => { s.splice(0, 9, 1, 2, 3, 4, 5, 6, 7, 8, 0); let e = 8, prev = -1; for (let k = 0; k < 80; k++) { const opts = nb(e).filter(j => j !== prev), j = opts[Math.floor(r() * opts.length)]; [s[e], s[j]] = [s[j], s[e]]; prev = e; e = j; } if (s.join() === '1,2,3,4,5,6,7,8,0') shuffle(); };
+    const shuffle = () => { s.splice(0, 9, 1, 2, 3, 4, 5, 6, 7, 8, 0); let e = 8, prev = -1; for (let k = 0; k < 80; k++) { const o = nb(e).filter(j => j !== prev), j = o[Math.floor(r() * o.length)]; [s[e], s[j]] = [s[j], s[e]]; prev = e; e = j; } if (s.join() === '1,2,3,4,5,6,7,8,0') shuffle(); };
     const b = el('div', 'board'); b.style.gridTemplateColumns = 'repeat(3,auto)';
-    const draw = () => b.replaceChildren(...s.map((v, i) => { const t = el('div', 'tile' + (v ? '' : ' empty'), v ? String(v) : ''); t.onclick = () => { if (!v || b.dataset.done) return; const e = s.indexOf(0); if (!nb(e).includes(i)) return; [s[e], s[i]] = [s[i], s[e]]; draw(); if (s.join() === '1,2,3,4,5,6,7,8,0') { b.dataset.done = 1; win(); } }; return t; }));
+    const draw = () => b.replaceChildren(...s.map((v, i) => { const t = el('div', 'cell tile'); if (v) t.append(sprite(CRATE, 4), el('b', '', String(v))); else { t.style.cssText = `width:${80}px;height:${80}px;cursor:default`; } t.onclick = () => { if (!v || b.dataset.done) return; const e = s.indexOf(0); if (!nb(e).includes(i)) return; [s[e], s[i]] = [s[i], s[e]]; draw(); if (s.join() === '1,2,3,4,5,6,7,8,0') { b.dataset.done = 1; win(); } }; return t; }));
     shuffle(); draw();
-    const again = el('button', 'ghost', 'Remélanger'); again.style.color = '#7a4f26'; again.onclick = () => { delete b.dataset.done; shuffle(); draw(); };
+    const again = el('button', 'dark', 'REMÉLANGER'); again.onclick = () => { delete b.dataset.done; shuffle(); draw(); };
     return [b, again];
   }
   function magic(p, win, lose) {
     const b = el('div', 'board magic'); b.style.gridTemplateColumns = 'repeat(3,auto)';
     const ins = Array.from({ length: 9 }, () => { const i = el('input'); i.inputMode = 'numeric'; i.maxLength = 1; i.oninput = () => { i.value = i.value.replace(/[^1-9]/g, ''); }; return i; });
     b.append(...ins);
-    const check = el('button', '', 'Vérifier'); check.onclick = () => {
+    const check = el('button', '', 'VÉRIFIER'); check.onclick = () => {
       const v = ins.map(i => +i.value);
       if (v.some(x => !x) || new Set(v).size !== 9) return lose('Il faut les neuf nombres de 1 à 9, chacun une fois.', true);
       const L = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]].map(l => l.reduce((s, k) => s + v[k], 0));
@@ -226,27 +343,31 @@ export default async function (ctx) {
   }
 
   /* ---------- une énigme ---------- */
+  const SAYS = ['Voyons si tu es aussi malin qu\'on le dit.', 'Prends ton temps, la marée attendra.', 'Les archives ne s\'ouvrent qu\'aux esprits patients.'];
   function puzzle(p, d) {
-    const card = el('div', 'paper pz'), head = el('div', 'head'), msg = el('div', 'msg'), stamp = el('div', 'stamp');
-    const solved = () => st.solved[p.id];
-    head.innerHTML = `<span class="num">${p.n}</span><h2>${p.t}</h2><span class="val">${solved() ? 'résolue : ' + solved() + ' étincelles' : 'vaut ' + worth(p) + ' étincelles'}</span>`;
-    const says = el('div', 'says'); says.innerHTML = FACES[d.who] + `<span>${d.whoName.split(',')[0]} : « ${['Voyons si tu es aussi malin qu\'on le dit.', 'Prends ton temps, la marée attendra.', 'Les archives ne s\'ouvrent qu\'aux esprits patients.'][D.indexOf(d)]} »</span>`;
-    const q = el('div', 'q', p.q);
-    card.append(head, says, q, stamp);
-    if (p.fig) { const f = el('div', 'fig'); f.innerHTML = FIG[p.fig]; card.append(f); }
-    const after = el('div');
-    const showWhy = () => { after.replaceChildren(el('div', 'why', p.why)); const nx = P[P.indexOf(p) + 1], row = el('div', 'ans'); const back = el('button', 'ghost', 'Retour au quartier'); back.style.color = '#7a4f26'; back.onclick = () => district(d); row.append(back); if (nx && nx.d === p.d) { const go = el('button', '', 'Énigme suivante →'); go.onclick = () => puzzle(nx, d); row.append(go); } after.append(row); };
-    const flash = (good) => { stamp.className = 'stamp ' + (good ? 'good' : 'bad'); stamp.textContent = good ? 'JUSTE !' : 'RATÉ'; requestAnimationFrame(() => stamp.classList.add('on')); setTimeout(() => stamp.classList.remove('on'), good ? 1600 : 900); };
+    const card = el('div', 'parch pz'), head = el('div', 'head'), msg = el('div', 'msg'), stamp = el('div', 'stamp'), after = el('div');
+    const solved = () => st.solved[p.id], val = el('span', 'val');
+    const setVal = () => { val.textContent = solved() ? 'résolue : ' + solved() + ' étincelles' : 'vaut ' + worth(p) + ' étincelles'; };
+    head.append(el('span', 'num', String(p.n)), el('h2', '', p.t), val); setVal();
+    const says = el('div', 'says'); says.append(face(d.who, 3), el('div', 'bubble', d.whoName.split(',')[0] + ' : « ' + SAYS[D.indexOf(d)] + ' »'));
+    card.append(head, says, el('div', 'q', p.q), stamp);
+    if (p.fig) card.append(FIG[p.fig]());
+    const showWhy = () => {
+      after.replaceChildren(el('div', 'why', p.why));
+      const nx = P[P.indexOf(p) + 1], row = el('div', 'ans'), back = el('button', 'dark', 'RETOUR AU QUARTIER'); back.onclick = () => district(d); row.append(back);
+      if (nx && nx.d === p.d) { const go = el('button', '', 'ÉNIGME SUIVANTE >'); go.onclick = () => puzzle(nx, d); row.append(go); }
+      after.append(row);
+    };
+    const flash = good => { stamp.className = 'stamp ' + (good ? 'good' : 'bad'); stamp.textContent = good ? 'JUSTE !' : 'RATÉ'; requestAnimationFrame(() => stamp.classList.add('on')); setTimeout(() => stamp.classList.remove('on'), good ? 1600 : 900); };
+    const ans = el('div', 'ans');
     const win = () => {
       if (!solved()) { st.solved[p.id] = worth(p); st.bougies += 1; save(); }
-      head.querySelector('.val').textContent = 'résolue : ' + solved() + ' étincelles';
-      msg.textContent = ''; flash(true); ans.querySelectorAll('button,input').forEach(x => { if (!x.closest('.board')) x.disabled = true; }); showWhy(); refreshBar();
+      setVal(); msg.textContent = ''; flash(true); ans.querySelectorAll('button,input').forEach(x => { if (!x.closest('.board')) x.disabled = true; }); showWhy(); refreshBar(); drawHints();
     };
-    const lose = (text, noCost) => { if (!noCost && !solved()) { st.tries[p.id] = (st.tries[p.id] || 0) + 1; save(); head.querySelector('.val').textContent = 'vaut ' + worth(p) + ' étincelles'; } flash(false); msg.textContent = text || 'Ce n\'est pas ça. Réfléchis encore — ou allume une bougie.'; };
-    const ans = el('div', 'ans');
+    const lose = (text, noCost) => { if (!noCost && !solved()) { st.tries[p.id] = (st.tries[p.id] || 0) + 1; save(); setVal(); } flash(false); msg.textContent = text || 'Ce n\'est pas ça. Réfléchis encore, ou allume une bougie.'; };
     if (p.type === 'num' || p.type === 'text') {
       const i = el('input'); i.placeholder = p.type === 'num' ? 'ta réponse' : 'ton mot'; if (p.type === 'num') i.inputMode = 'decimal';
-      const ok = el('button', '', 'Répondre');
+      const ok = el('button', '', 'RÉPONDRE');
       const go = () => { const v = i.value.trim(); if (!v) return; const right = p.type === 'num' ? Math.abs(parseFloat(v.replace(',', '.').replace(/[^\d.-]/g, '')) - p.a) < 1e-9 : p.a.some(a => norm(a) === norm(v)); right ? win() : lose(); };
       ok.onclick = go; i.onkeydown = e => { if (e.key === 'Enter') go(); };
       ans.append(i); if (p.unit) ans.append(el('span', '', p.unit)); ans.append(ok);
@@ -254,28 +375,31 @@ export default async function (ctx) {
     } else if (p.type === 'choice') {
       const o = el('div', 'opts'); p.opts.forEach((t, k) => { const b = el('button', '', t); b.onclick = () => k === p.a ? win() : lose(); o.append(b); }); ans.append(o);
     } else {
-      const parts = { lights, slide, magic }[p.type](p, win, lose); const box = el('div'); box.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:12px;width:100%'; box.append(...parts); ans.append(box);
+      const parts = { lights, slide, magic }[p.type](p, win, lose), box = el('div'); box.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;width:100%'; box.append(...parts); ans.append(box);
     }
     card.append(ans, msg, after);
     // les bougies : chacune éclaire un indice
     const hints = el('div', 'hints'), opened = () => st.hints[p.id] || 0;
-    const drawHints = () => hints.replaceChildren(...p.hints.map((h, k) => {
-      if (k < opened() || solved()) return el('div', 'hint', '🕯 ' + h);
-      const c = el('div', 'hint closed', k === opened() ? (st.bougies ? 'Allumer une bougie (il t\'en reste ' + st.bougies + ')' : 'Plus de bougies : résous une énigme pour en gagner une') : 'Indice ' + (k + 1));
-      if (k === opened() && st.bougies) c.onclick = () => { st.bougies--; st.hints[p.id] = opened() + 1; save(); drawHints(); refreshBar(); };
-      return c;
-    }));
+    function drawHints() {
+      hints.replaceChildren(...p.hints.map((h, k) => {
+        if (k < opened() || solved()) { const c = el('div', 'hint'); c.append(candle(), el('span', '', h)); return c; }
+        const c = el('div', 'hint closed'); c.append(candle(), el('span', '', k === opened() ? (st.bougies ? 'Allumer une bougie (il t\'en reste ' + st.bougies + ')' : 'Plus de bougies : résous une énigme pour en gagner une') : 'Indice ' + (k + 1)));
+        if (k === opened() && st.bougies) c.onclick = () => { st.bougies--; st.hints[p.id] = opened() + 1; save(); drawHints(); refreshBar(); };
+        return c;
+      }));
+    }
     drawHints();
-    const hBox = el('div'); hBox.append(el('div', '', 'Indices'), hints); hBox.firstChild.style.cssText = 'font:italic 700 15px Georgia,serif;color:var(--cuivre2);margin:4px 0 6px';
     let bar = top(() => district(d), d.name);
     const refreshBar = () => { const nb = top(() => district(d), d.name); bar.replaceWith(nb); bar = nb; };
-    wrap.replaceChildren(bar, card, hBox); scrollTop();
-    if (solved()) { flash(true); ans.querySelectorAll('button,input').forEach(x => x.disabled = true); showWhy(); }
+    wrap.replaceChildren(bar, card, el('div', 'label', 'INDICES'), hints); scrollTop();
+    if (solved()) { ans.querySelectorAll('button,input').forEach(x => { if (!x.closest('.board')) x.disabled = true; }); showWhy(); }
   }
   function ending() {
-    const f = el('div', 'final paper');
-    f.innerHTML = clockSvg(true) + '<h2 style="color:#7a4f26">La grande horloge bat de nouveau</h2><p>Le dernier rouage s\'est enclenché avec un « clac » sonore. Dans toute la ville, on a levé la tête : les aiguilles repartaient.<br>Ysé a refermé son registre en souriant : « Valcendre n\'oubliera pas ton nom. »</p><p><b>' + score() + ' étincelles</b> sur ' + P.reduce((s, p) => s + p.pts, 0) + '.</p>';
-    const b = el('button', '', 'Revenir à la carte'); b.onclick = map; f.append(b);
+    const f = el('div', 'final parch');
+    f.append(clock(true, 5), el('h2', '', 'La grande horloge bat de nouveau'),
+      el('p', '', 'Le dernier rouage s\'est enclenché avec un « clac » sonore. Dans toute la ville, on a levé la tête : les aiguilles repartaient. Ysé a refermé son registre en souriant : « Valcendre n\'oubliera pas ton nom. »'),
+      el('p', 'big', score() + ' étincelles sur ' + P.reduce((s, p) => s + p.pts, 0)));
+    const b = el('button', '', 'REVENIR À LA CARTE'); b.onclick = map; f.append(b);
     wrap.replaceChildren(f);
   }
   title();

@@ -1,7 +1,7 @@
 // Valcendre : l'horloge aux énigmes. La grande horloge de Valcendre s'est arrêtée ; chaque énigme résolue rend un rouage.
 // 30 énigmes en trois quartiers (le Marché, le Port, la Tour), des indices payés en bougies, des énigmes à manipuler.
 // Tout est en pixel art dessiné ici, pixel par pixel (cadres, boutons, personnages, ville, horloge), agrandi sans lissage.
-// Plugin autonome : seulement la permission « storage » (il tourne dans le bac à sable de NeoBase).
+// Plugin autonome : seulement la permission « storage » (il tourne dans le bac à sable de NeoDex).
 export default async function (ctx) {
   const el = ctx.el;
   const SC = 3;  // un pixel du dessin = 3 pixels à l'écran
@@ -237,7 +237,7 @@ export default async function (ctx) {
   P.forEach((p, i) => { p.n = i + 1; p.id = 'e' + p.n; });
   const TOTAL = P.length, UNLOCK = 7;
 
-  /* ---------- la partie, gardée par NeoBase ---------- */
+  /* ---------- la partie, gardée par NeoDex ---------- */
   let st = (await ctx.storage.get().catch(() => null)) || {};
   st = { solved: {}, tries: {}, hints: {}, bougies: 5, ...st };
   const save = () => ctx.storage.set(st).catch(() => {});

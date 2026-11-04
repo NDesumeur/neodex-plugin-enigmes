@@ -14,10 +14,10 @@ Un jeu d'énigmes tout en pixel art. Cette nuit, la grande horloge de Valcendre 
   - Les bougies allument les indices. Chaque énigme résolue t'en rend une.
 - **Une explication** après chaque énigme, et une fin quand l'horloge repart.
 
-La partie est gardée par NeoBase, synchro comprise. Le plugin ne demande qu'une seule autorisation, `storage` (ses propres données) : il tourne dans le bac à sable de NeoBase.
+La partie est gardée par NeoDex, synchro comprise. Le plugin ne demande qu'une seule autorisation, `storage` (ses propres données) : il tourne dans le bac à sable de NeoDex.
 
 ## Installer
 
-Dans NeoBase : **NeoStore → À découvrir → Valcendre → Installer**.
+Dans NeoDex : **NeoStore → À découvrir → Valcendre → Installer**.
 
-Développer un plugin : voir le [SDK NeoBase](https://github.com/NDesumeur/neobase-sdk).
+Développer un plugin : voir le [SDK NeoDex](https://github.com/NDesumeur/neodex-sdk).

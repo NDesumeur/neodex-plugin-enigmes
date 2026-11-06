@@ -11,6 +11,8 @@
   "sdk": "2.1.0",
   "type": "app",
   "category": "Jeux",
+  "syncMode": "progression",
+  "syncInfo": "Énigmes résolues, avancement.",
   "mobile": true,
   "system": false,
   "dependencies": {},

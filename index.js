@@ -87,7 +87,9 @@ export default async function (ctx) {
   .vc .pz .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:6px;margin-bottom:8px;box-shadow:0 ${SC}px 0 ${C.q}}
   .vc .pz .num{font:56px/48px 'Jersey 10',monospace;color:${C.R};text-shadow:3px 3px 0 ${C.P}}
   .vc .pz .val{margin-left:auto;color:${C.Q}}
-  .vc .pz .q{font-size:24px;line-height:26px;white-space:pre-line}
+  .vc .pz .q{font-size:22px;line-height:26px;white-space:pre-line;opacity:.85}
+  .vc .pz .goal{font-size:24px;line-height:28px;white-space:pre-line;background:#ead39e;border:3px solid #6b5434;box-shadow:inset 4px 0 0 #c48a2c,3px 3px 0 #140c1c;padding:10px 14px 10px 18px;margin:4px 0}
+  .vc .pz .goal b{display:block;font-size:16px;letter-spacing:2px;color:#8a2c2c;margin-bottom:2px}
   .vc .says{display:flex;gap:10px;align-items:center;margin-bottom:10px}
   .vc .bubble{position:relative;${bi(F.well, 3)};padding:2px 8px;color:${C.Q}}
   .vc .fig{display:flex;justify-content:center;align-items:flex-end;gap:12px;margin:12px 0;flex-wrap:wrap}
@@ -311,31 +313,51 @@ export default async function (ctx) {
   /* ---------- le ciel de Valcendre : nuit, étoiles, toits et la tour de l'horloge ---------- */
   const sky = cv(10, 10); sky.className = 'sky';
   function rnd(seed) { let x = seed; return () => (x = (x * 16807) % 2147483647) / 2147483647; }
+  // le décor : ciel tramé (trame ordonnée 4×4, pas de bandes), étoiles, lune et son halo, montagnes, deux rangées de toits, la tour de l'horloge
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  const hex = h => { const n = parseInt(h.slice(1), 16); return 0xff000000 | (n & 255) << 16 | (n >> 8 & 255) << 8 | n >> 16; };  // en ABGR pour Uint32Array
   function drawSky() {
-    const W = Math.ceil(sky.offsetWidth / SC / 1) || 300, H = Math.ceil(sky.offsetHeight / SC) || 200;
+    const W = Math.ceil(sky.offsetWidth / SC) || 300, H = Math.ceil(sky.offsetHeight / SC) || 200;
     if (sky.width !== W || sky.height !== H) { sky.width = W; sky.height = H; }
-    const g = sky.getContext('2d'), R = rnd(7), bands = [C.n, '#101a3c', C.N, '#1e2d5e', C.m];
-    for (let y = 0; y < H; y++) { const f = Math.min(bands.length - 1, y / H * 1.6 * bands.length), i = Math.floor(f), fr = f - i; for (let x = 0; x < W; x++) px(g, x, y, bands[Math.min(bands.length - 1, i + ((x + y) % 2 === 0 && fr > .5 ? 1 : 0) + ((x % 4 === 0 && y % 2 === 0 && fr > .75) ? 1 : 0))] || C.m); }
-    const tw = Math.floor(Date.now() / 700);
-    for (let i = 0; i < W * H / 260; i++) { const x = Math.floor(R() * W), y = Math.floor(R() * H * .55), on = (i * 7 + tw) % 9; px(g, x, y, on === 0 ? C.N : on < 3 ? C.l : C.w); if (i % 11 === 0 && on > 2) { px(g, x - 1, y, C.M); px(g, x + 1, y, C.M); px(g, x, y - 1, C.M); px(g, x, y + 1, C.M); } }
-    // la lune
-    const mx = Math.floor(W * .82), my = Math.floor(H * .14);
-    for (let y = -6; y <= 6; y++) for (let x = -6; x <= 6; x++) { const d = Math.hypot(x, y); if (d <= 6) px(g, mx + x, my + y, Math.hypot(x + 3, y - 2) <= 5 ? '#101a3c' : d > 5 ? C.y : C.l); }
-    // les toits
-    const base = Math.floor(H * .72); let x = 0; const R2 = rnd(31);
-    while (x < W) {
-      const w = 10 + Math.floor(R2() * 14), h = 10 + Math.floor(R2() * 22), top = base - h;
-      for (let yy = top; yy < H; yy++) for (let xx = x; xx < Math.min(W, x + w); xx++) px(g, xx, yy, xx === x ? C.k : C.d);
-      for (let k = 0; k < w / 2 + 1; k++) for (let xx = x + k; xx < x + w - k; xx++) px(g, xx, top - k, k === Math.floor(w / 2) || xx === x + k || xx === x + w - k - 1 ? C.k : C.D);
-      for (let yy = top + 3; yy < base - 2; yy += 5) for (let xx = x + 2; xx < x + w - 3; xx += 4) if (R2() < .45) { px(g, xx, yy, C.l); px(g, xx + 1, yy, C.o); px(g, xx, yy + 1, C.o); px(g, xx + 1, yy + 1, C.o); }
-      x += w;
+    const g = sky.getContext('2d'), img = g.createImageData(W, H), d32 = new Uint32Array(img.data.buffer);
+    const put = (x, y, c) => { if (x >= 0 && y >= 0 && x < W && y < H) d32[y * W + x] = c; };
+    const SKY = ['#0a0f26', '#0d1430', '#121c42', '#172452', '#1e2d5e', '#2a3a72', '#3a3f78', '#57487e'].map(hex);
+    for (let y = 0; y < H; y++) { const f = Math.min(.999, y / (H * .78)) * (SKY.length - 1); for (let x = 0; x < W; x++) { const i = Math.floor(f), fr = f - i; d32[y * W + x] = SKY[Math.min(SKY.length - 1, i + (fr * 16 > BAYER[(y & 3) * 4 + (x & 3)] ? 1 : 0))]; } }
+    const R = rnd(7), tw = Math.floor(Date.now() / 700), cl = hex(C.l), cw = hex(C.w), cN = hex(C.M);
+    for (let i = 0; i < W * H / 300; i++) { const x = Math.floor(R() * W), y = Math.floor(R() * R() * H * .6), on = (i * 7 + tw) % 11; put(x, y, on === 0 ? cN : on < 3 ? cl : cw); if (i % 13 === 0 && on > 3) { put(x - 1, y, cN); put(x + 1, y, cN); put(x, y - 1, cN); put(x, y + 1, cN); } }
+    // la lune, avec un halo tramé
+    const mx = Math.floor(W * .82), my = Math.floor(H * .14), halo = hex('#2c3a78'), cy = hex(C.y);
+    for (let y = -14; y <= 14; y++) for (let x = -14; x <= 14; x++) { const r = Math.hypot(x, y); if (r > 7 && r <= 14 && (14 - r) / 7 * 16 > BAYER[((my + y) & 3) * 4 + ((mx + x) & 3)]) put(mx + x, my + y, halo); }
+    for (let y = -7; y <= 7; y++) for (let x = -7; x <= 7; x++) { const r = Math.hypot(x, y); if (r <= 7) put(mx + x, my + y, r > 6 ? cy : Math.hypot(x - 2, y + 2) < 2 || Math.hypot(x + 3, y - 3) < 1.5 ? hex(C.y) : cl); }
+    // les montagnes, au loin
+    const mnt = hex('#26285a'), mntL = hex('#33356e'), base = Math.floor(H * .72);
+    for (let x = 0; x < W; x++) { const h = Math.floor(H * .16 + Math.sin(x * .021) * H * .06 + Math.sin(x * .057 + 1) * H * .03); for (let y = base - h; y < H; y++) put(x, y, y < base - h + 2 && Math.sin(x * .057 + 1) > .3 ? mntL : mnt); }
+    // deux rangées de toits : au fond (sombres, peu de fenêtres), devant (fenêtres chaudes, cheminées)
+    const rows = [{ base: base - 6, hmin: 8, hmax: 22, wall: hex('#1d1a3e'), roof: hex('#25224c'), edge: hex('#151230'), lit: .12, seed: 19 },
+      { base, hmin: 10, hmax: 26, wall: hex(C.d), roof: hex(C.D), edge: hex(C.k), lit: .42, seed: 31 }];
+    for (const row of rows) {
+      const R2 = rnd(row.seed); let x = -Math.floor(R2() * 8);
+      while (x < W) {
+        const w = 10 + Math.floor(R2() * 14), h = row.hmin + Math.floor(R2() * (row.hmax - row.hmin)), top = row.base - h, kind = R2();
+        for (let yy = top; yy < H; yy++) for (let xx = x; xx < x + w; xx++) put(xx, yy, xx === x || xx === x + w - 1 ? row.edge : row.wall);
+        if (kind < .55) for (let k = 0; k <= w / 2; k++) for (let xx = x + k; xx < x + w - k; xx++) put(xx, top - k, xx === x + k || xx === x + w - k - 1 ? row.edge : row.roof);  // toit pointu
+        else if (kind < .8) { for (let xx = x; xx < x + w; xx++) put(xx, top - 1, row.edge); const cx = x + 2 + Math.floor(R2() * (w - 5)); for (let yy = top - 5; yy < top; yy++) { put(cx, yy, row.edge); put(cx + 1, yy, row.roof); put(cx + 2, yy, row.edge); } }  // toit plat, cheminée
+        else for (let k = 0; k < 3; k++) for (let xx = x + k; xx < x + w - k; xx++) put(xx, top - 1 - k, k === 2 || xx === x + k || xx === x + w - k - 1 ? row.edge : row.roof);  // toit en croupe
+        for (let yy = top + 3; yy < row.base + 20 && yy < H - 2; yy += 5) for (let xx = x + 2; xx < x + w - 3; xx += 4) {
+          const on = R2() < row.lit && (Math.floor(xx * 3 + yy * 7 + tw / 9) % 23) !== 0;  // de temps en temps, une lumière s'éteint
+          const a = on ? hex(C.l) : row.edge, b2 = on ? hex(C.o) : row.edge; put(xx, yy, a); put(xx + 1, yy, b2); put(xx, yy + 1, b2); put(xx + 1, yy + 1, b2);
+        }
+        x += w;
+      }
     }
-    // la tour de l'horloge, au milieu
-    const tx = Math.floor(W / 2), tw2 = 14, ttop = Math.floor(H * .3);
-    for (let yy = ttop; yy < H; yy++) for (let xx = tx - tw2 / 2; xx < tx + tw2 / 2; xx++) px(g, xx, yy, xx === tx - tw2 / 2 || xx === tx + tw2 / 2 - 1 ? C.k : C.D);
-    for (let k = 0; k < 12; k++) for (let xx = tx - tw2 / 2 + Math.floor(k / 2); xx < tx + tw2 / 2 - Math.floor(k / 2); xx++) px(g, xx, ttop - k, C.k);
-    for (let y = -5; y <= 5; y++) for (let xx = -5; xx <= 5; xx++) { const d = Math.hypot(xx, y); if (d <= 5) px(g, tx + xx, ttop + 8 + y, d > 4 ? C.Y : C.p); }
-    px(g, tx, ttop + 8, C.k); px(g, tx, ttop + 5, C.k); px(g, tx + 1, ttop + 8, C.k); px(g, tx + 2, ttop + 8, C.k);
+    // la tour de l'horloge, au milieu : briques, créneaux, toit pointu, cadran éclairé
+    const tx = Math.floor(W / 2), tw2 = 18, ttop = Math.floor(H * .3), tk = hex(C.k), tD = hex(C.D), td = hex(C.d);
+    for (let yy = ttop; yy < H; yy++) for (let xx = tx - tw2 / 2; xx < tx + tw2 / 2; xx++) { const e = xx === tx - tw2 / 2 || xx === tx + tw2 / 2 - 1; put(xx, yy, e ? tk : ((yy - ttop) % 4 === 0 || (xx + ((yy - ttop) >> 2) * 2) % 6 === 0) ? td : tD); }
+    for (let xx = tx - tw2 / 2 - 1; xx <= tx + tw2 / 2; xx++) { put(xx, ttop, tk); if (((xx - tx) & 3) < 2) { put(xx, ttop - 1, tk); put(xx, ttop - 2, tk); } }
+    for (let k = 0; k < 14; k++) for (let xx = tx - tw2 / 2 + 1 + Math.floor(k / 2); xx < tx + tw2 / 2 - 1 - Math.floor(k / 2); xx++) put(xx, ttop - 3 - k, xx === tx - tw2 / 2 + 1 + Math.floor(k / 2) ? tk : tD);
+    for (let y = -6; y <= 6; y++) for (let xx = -6; xx <= 6; xx++) { const r = Math.hypot(xx, y); if (r <= 6) put(tx + xx, ttop + 10 + y, r > 5 ? hex(C.Y) : hex(C.p)); }
+    put(tx, ttop + 10, tk); put(tx, ttop + 7, tk); put(tx, ttop + 8, tk); put(tx + 1, ttop + 10, tk); put(tx + 2, ttop + 10, tk);
+    g.putImageData(img, 0, 0);
   }
   const skyTimer = setInterval(() => sky.isConnected ? drawSky() : clearInterval(skyTimer), 700);
   addEventListener('resize', () => drawSky());
@@ -1087,6 +1109,12 @@ export default async function (ctx) {
     tools.append(pen('CRAYON', C.k), pen('ROUGE', C.R), pen('GOMME', C.p), clear, close);
     box.append(el('div', 'label', 'BROUILLON'), c, tools); host.append(box);
   }
+  // l'histoire d'un côté, la question de l'autre (le dernier paragraphe, ou à défaut la dernière phrase), bien en vue
+  function splitQ(q) {
+    const parts = q.split(/\n\n+/); if (parts.length > 1) return [parts.slice(0, -1).join('\n\n'), parts.at(-1)];
+    const m = q.match(/^([\s\S]*[.!»])\s+([^.!?»]*[^\s][^.!»]*[.!?]?)$/); return m && m[1].length > 20 ? [m[1], m[2]] : ['', q];
+  }
+  console.assert(splitQ('Une histoire.\n\nTrouve X.')[1] === 'Trouve X.' && splitQ('Il fait nuit sur le port ce soir. Combien de bateaux ?')[1] === 'Combien de bateaux ?' && splitQ('Combien ?')[1] === 'Combien ?', 'splitQ');
   function puzzle(p, d) {
     const card = el('div', 'parch pz'), head = el('div', 'head'), msg = el('div', 'msg'), stamp = el('div', 'stamp'), after = el('div');
     const solved = () => st.solved[p.id], val = el('span', 'val');
@@ -1097,7 +1125,8 @@ export default async function (ctx) {
     const says = el('div', 'says'); says.append(face(d.who, 3), el('div', 'bubble', d.whoName.split(',')[0] + ' : « ' + SAYS[D.indexOf(d)] + ' »'));
     card.append(head);
     if (p.sc) { const sc = el('div', 'scene'); sc.append(scene(p.d, p.sc)); card.append(sc); }
-    card.append(says, el('div', 'q', p.q), stamp);
+    const [story, goal] = splitQ(p.q), gb = el('div', 'goal'); gb.append(el('b', '', 'CE QU\'IL FAUT TROUVER'), goal);
+    card.append(says); if (story) card.append(el('div', 'q', story)); card.append(gb, stamp);
     if (p.fig) card.append(FIG[p.fig]());
     const showWhy = () => {
       after.replaceChildren(el('div', 'why', p.why));

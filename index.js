@@ -316,6 +316,35 @@ export default async function (ctx) {
   // le décor : ciel tramé (trame ordonnée 4×4, pas de bandes), étoiles, lune et son halo, montagnes, deux rangées de toits, la tour de l'horloge
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
   const hex = h => { const n = parseInt(h.slice(1), 16); return 0xff000000 | (n & 255) << 16 | (n >> 8 & 255) << 8 | n >> 16; };  // en ABGR pour Uint32Array
+  const HOUSE_PARTS = {
+      roof16: ["......kk........", ".....kRrk..kk...", "....kRrrrk.cC...", "...kRrrrrrkcC...", "..kRrrkkrrrrk...", ".kRrrkLLkrrrrk..", "kRrrrkOOkrrrrrk.", "kRrrrrrrrrrrrrrk", "kttttttttttttttk", "kkkkkkkkkkkkkkkk"],
+      hip16: ["..........kk....", "..........cC....", "..kkkkkkkkcCkk..", ".kRRRRRRRRRRRRk.", "kRrrrrrrrrrrrrrk", "kRrrrrrrrrrrrrrk", "kttttttttttttttk", "kkkkkkkkkkkkkkkk"],
+      roof12: ["....kk......", "...kRrk.....", "..kRrrrk....", "..kRrrrrk...", ".kRrrrrrrk..", ".kRrrrrrrrk.", "kRrrrrrrrrrk", "kttttttttttk", "kkkkkkkkkkkk"],
+      step20: ["........kkkk........", "........kwwk........", "......kkkwwkkk......", "......kwwwwwwk......", "....kkkwwkkwwkkk....", "....kwwwkLLkwwwk....", "..kkkwwwkOOkwwwkkk..", "..kwwwwwwwwwwwwwwk..", "kkkwwwwwwwwwwwwwwkkk", "kSSSSSSSSSSSSSSSSSSk", "kkkkkkkkkkkkkkkkkkkk"],
+      timber16: ["kbbbbbbbbbbbbbbk", "kbpkkkkbbkkkkpbk", "kbpkLLkbbkLLkpbk", "kbpkOOkbbkOOkpbk", "kbpkkkkbbkkkkpbk", "kbbpppbbbbpppbbk", "kbpbpbpbbpbpbpbk"],
+      plain16: ["kPPPPPPPPPPPPPPk", "kphkkkkhhkkkkhpk", "kphkLLkhhkLLkhpk", "kphkOOkhhkOOkhpk", "kphkkkkhhkkkkhpk", "kppssssppssssppk", "kppppppppppppppk"],
+      narrow12: ["kPPPPPPPPPPk", "kphkkkkhpppk", "kphkLLkhpppk", "kphkOOkhpppk", "kphkkkkhpppk", "kppsssspPppk", "kppppppppppk"],
+      narrow12b: ["kPPPPPPPPPPk", "kpppphkkkkhk", "kpppphkLLkhk", "kpppphkOOkhk", "kpppphkkkkhk", "kppppPssssPk", "kppppppppppk"],
+      wide20: ["kPPPPPPPPPPPPPPPPPPk", "kpkkkkppkkkkppkkkkpk", "kpkLLkppkLLkppkLLkpk", "kpkOOkppkOOkppkOOkpk", "kpkkkkppkkkkppkkkkpk", "kpssssppssssppsssspk", "kppppppppppppppppppk"],
+      door16: ["kSSSSSSSSSSSSSSk", "kspkkkkpkkkkpssk", "kspkLLkpkddkpssk", "kspkOOkpkdDkpssk", "kspkkkkpkddkpssk", "kspsssspkdykpssk", "ksppppppkddkpppk", "kSSSSSSSkddkSSSk", "kkkkkkkkkkkkkkkk"],
+      shop16: ["kSSSSSSSSSSSSSSk", "kaAaAaAaAaAaAaAk", "kAaAaAaAaAaAaAak", ".kkkkkkkkkkkkkk.", ".kkkkkkkkpkddkk.", ".kLLLLLLkpkddk..", ".kOOOOOOkpkdyk..", ".kkkkkkkkpkddk..", "kkkkkkkkkkkkkkkk"],
+      door12: ["kSSSSSSSSSSk", "kspkddkpsssk", "kspkdDkpkkkk", "kspkddkpkLLk", "kspkdykpkOOk", "kspkddkpkkkk", "ksppddppssSk", "kSSSddSSSSSk", "kkkkkkkkkkkk"],
+      arch20: ["kSSSSSSSSSSSSSSSSSSk", "kspppppkkkkkkpppppsk", "kspkkkkkddddkkkkkpsk", "kspkLLkddddddkLLkpsk", "kspkOOkddDDddkOOkpsk", "kspkkkkddddddkkkkpsk", "kspssssddddddsssspsk", "kSSSSSSddyyddSSSSSSk", "kkkkkkkkkkkkkkkkkkkk"],
+      lamp: ["kyk", "yLy", "kyk", ".k.", ".k.", ".k.", ".k.", ".k.", ".k.", "kkk"],
+  };
+  const HOUSE_PAL = {"k": "#140c1c", "p": "#6b5a80", "P": "#54466a", "b": "#2b1d33", "r": "#8a3240", "R": "#b04a50", "t": "#5a1e2c", "L": "#ffd86b", "O": "#ff9b3d", "h": "#34507a", "H": "#22385a", "d": "#6a3a24", "D": "#3e2016", "c": "#7a4a44", "C": "#4a2a2c", "s": "#8a809a", "S": "#4a4460", "a": "#d8584a", "A": "#f3e2b8", "y": "#f2c25b", "w": "#9a8aae"};
+  const HOUSE_FAM = {16: [['roof16', 'hip16'], ['timber16', 'plain16'], ['door16', 'shop16']], 12: [['roof12'], ['narrow12', 'narrow12b'], ['door12']], 20: [['step20'], ['wide20'], ['arch20']]};
+  const HOUSE_TINT = [['#6b5a80', '#54466a'], ['#7a6a6a', '#5e5054'], ['#56688a', '#44526e'], ['#6e6a5a', '#56523f']];
+  const houseMix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0')).join('');
+  const HOUSE_LAB = {};  // chaque fenêtre a son numéro : elle s'allume ou s'éteint d'un bloc
+  for (const [k, rows] of Object.entries(HOUSE_PARTS)) {
+    const lab = rows.map(r => [...r].map(() => -1)); let n = 0;
+    rows.forEach((r, y) => [...r].forEach((ch, x) => { if (!'LO'.includes(ch) || lab[y][x] >= 0) return;
+      const st = [[x, y]]; while (st.length) { const [a, b] = st.pop(); if (b < 0 || b >= rows.length || a < 0 || a >= r.length || lab[b][a] >= 0 || !'LO'.includes(rows[b][a])) continue; lab[b][a] = n; st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]); }
+      n++; }));
+    HOUSE_LAB[k] = lab;
+  }
+  console.assert(Object.values(HOUSE_PARTS).every(r => r.every(l => l.length === r[0].length)) && Math.max(...HOUSE_LAB.timber16.flat()) === 1 && Math.max(...HOUSE_LAB.wide20.flat()) === 2 && houseMix('#000000', '#ffffff', .5) === '#808080', 'valcendre : maisons bien formées, une fenêtre = un numéro');
   function drawSky() {
     const W = Math.ceil(sky.offsetWidth / SC) || 300, H = Math.ceil(sky.offsetHeight / SC) || 200;
     if (sky.width !== W || sky.height !== H) { sky.width = W; sky.height = H; }
@@ -332,24 +361,32 @@ export default async function (ctx) {
     // les montagnes, au loin
     const mnt = hex('#26285a'), mntL = hex('#33356e'), base = Math.floor(H * .72);
     for (let x = 0; x < W; x++) { const h = Math.floor(H * .16 + Math.sin(x * .021) * H * .06 + Math.sin(x * .057 + 1) * H * .03); for (let y = base - h; y < H; y++) put(x, y, y < base - h + 2 && Math.sin(x * .057 + 1) > .3 ? mntL : mnt); }
-    // deux rangées de toits : au fond (sombres, peu de fenêtres), devant (fenêtres chaudes, cheminées)
-    const rows = [{ base: base - 6, hmin: 8, hmax: 22, wall: hex('#1d1a3e'), roof: hex('#25224c'), edge: hex('#151230'), lit: .12, seed: 19 },
-      { base, hmin: 10, hmax: 26, wall: hex(C.d), roof: hex(C.D), edge: hex(C.k), lit: .42, seed: 31 }];
+    // les maisons, dessinées à la main par morceaux (toit, étages, rez-de-chaussée) puis assemblées ; au fond plus hautes et sombres, devant une rue pavée et ses lampadaires
+    const HP = HOUSE_PARTS, sh = (r2, a) => a[Math.floor(r2() * a.length)];
+    const rows = [{ base: H - 22, fmin: 3, fmax: 6, lit: .14, dim: .62, seed: 19 }, { base: H - 6, fmin: 1, fmax: 3, lit: .5, dim: 0, seed: 31 }];
     for (const row of rows) {
-      const R2 = rnd(row.seed); let x = -Math.floor(R2() * 8);
+      const R2 = rnd(row.seed); let x = -Math.floor(R2() * 8), hi = 0;
       while (x < W) {
-        const w = 10 + Math.floor(R2() * 14), h = row.hmin + Math.floor(R2() * (row.hmax - row.hmin)), top = row.base - h, kind = R2();
-        for (let yy = top; yy < H; yy++) for (let xx = x; xx < x + w; xx++) put(xx, yy, xx === x || xx === x + w - 1 ? row.edge : row.wall);
-        if (kind < .55) for (let k = 0; k <= w / 2; k++) for (let xx = x + k; xx < x + w - k; xx++) put(xx, top - k, xx === x + k || xx === x + w - k - 1 ? row.edge : row.roof);  // toit pointu
-        else if (kind < .8) { for (let xx = x; xx < x + w; xx++) put(xx, top - 1, row.edge); const cx = x + 2 + Math.floor(R2() * (w - 5)); for (let yy = top - 5; yy < top; yy++) { put(cx, yy, row.edge); put(cx + 1, yy, row.roof); put(cx + 2, yy, row.edge); } }  // toit plat, cheminée
-        else for (let k = 0; k < 3; k++) for (let xx = x + k; xx < x + w - k; xx++) put(xx, top - 1 - k, k === 2 || xx === x + k || xx === x + w - k - 1 ? row.edge : row.roof);  // toit en croupe
-        for (let yy = top + 3; yy < row.base + 20 && yy < H - 2; yy += 5) for (let xx = x + 2; xx < x + w - 3; xx += 4) {
-          const on = R2() < row.lit && (Math.floor(xx * 3 + yy * 7 + tw / 9) % 23) !== 0;  // de temps en temps, une lumière s'éteint
-          const a = on ? hex(C.l) : row.edge, b2 = on ? hex(C.o) : row.edge; put(xx, yy, a); put(xx + 1, yy, b2); put(xx, yy + 1, b2); put(xx + 1, yy + 1, b2);
-        }
-        x += w;
+        const w = sh(R2, [16, 16, 12, 20]), [ro, fl, gr] = HOUSE_FAM[w], tint = sh(R2, HOUSE_TINT), names = [sh(R2, ro)];
+        for (let f = row.fmin + Math.floor(R2() * (row.fmax - row.fmin + 1)); f > 0; f--) names.push(sh(R2, fl));
+        names.push(sh(R2, gr));
+        let y = row.base - names.reduce((n, k) => n + HP[k].length, 0);
+        names.forEach((k, pi) => {
+          HP[k].forEach((r, yy) => { for (let xx = 0; xx < r.length; xx++) {
+            const ch = r[xx]; if (ch === '.') continue;
+            let col = ch === 'p' ? tint[0] : ch === 'P' ? tint[1] : HOUSE_PAL[ch], glow = false;
+            if (ch === 'L' || ch === 'O') { const id = HOUSE_LAB[k][yy][xx], on = (Math.imul(hi * 977 + pi * 131 + id * 17 + row.seed, 2654435761) >>> 0) / 4294967296 < row.lit && (hi * 7 + id * 13 + Math.floor(tw / 9)) % 23 !== 0; if (!on) col = ch === 'L' ? '#1b2240' : '#121830'; else glow = true; }  // de temps en temps, une lumière s'éteint
+            put(x + xx, y + yy, hex(row.dim && !glow ? houseMix(col, '#1d1a3e', row.dim) : col));
+          } });
+          y += HP[k].length;
+        });
+        x += w; hi++;
       }
     }
+    // la rue pavée et ses lampadaires
+    const pv = [hex('#3a3450'), hex('#4a4460'), hex('#2a2440')];
+    for (let yy = H - 6; yy < H; yy++) for (let xx = 0; xx < W; xx++) put(xx, yy, yy === H - 6 ? pv[2] : pv[((xx + (yy & 1) * 2) % 5 === 0) ? 2 : (xx * 7 + yy * 3) % 11 < 2 ? 1 : 0]);
+    for (let lx = 22; lx < W; lx += 74) HP.lamp.forEach((r, yy) => { for (let xx = 0; xx < r.length; xx++) if (r[xx] !== '.') put(lx + xx, H - HP.lamp.length + yy, hex(HOUSE_PAL[r[xx]])); });
     // la tour de l'horloge, au milieu : briques, créneaux, toit pointu, cadran éclairé
     const tx = Math.floor(W / 2), tw2 = 18, ttop = Math.floor(H * .3), tk = hex(C.k), tD = hex(C.D), td = hex(C.d);
     for (let yy = ttop; yy < H; yy++) for (let xx = tx - tw2 / 2; xx < tx + tw2 / 2; xx++) { const e = xx === tx - tw2 / 2 || xx === tx + tw2 / 2 - 1; put(xx, yy, e ? tk : ((yy - ttop) % 4 === 0 || (xx + ((yy - ttop) >> 2) * 2) % 6 === 0) ? td : tD); }

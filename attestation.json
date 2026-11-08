@@ -1,9 +1,9 @@
 {
   "pluginId": "neodex.enigmes",
   "repo": "NDesumeur/neodex-plugin-enigmes",
-  "version": "1.1.4",
-  "sha256": "a58c5f922c23562c487b2e22782fe6891e964c4b0c8fbbebaa34ce6cae4aefa1",
-  "approvedAt": "2026-11-08T12:10:47.610Z",
+  "version": "1.1.5",
+  "sha256": "657821b54132bc45f85e161a7bd20875d9552c662b19bcc8b3d2965a9f9e0761",
+  "approvedAt": "2026-11-08T14:45:27.341Z",
   "neobase": ">=4.0.0",
-  "signature": "XLClmejkbCozAhTdVAEHxc8kzY0MyCzmM4FWGaqC5reiQCT6DJ/VSE81enzEK7foPe/zDE/7O5CTNHvAGGRGCQ=="
+  "signature": "3aIJEJZkdpzVhz9SHjhmzrb9F4U/5Nqhv8/WfF7Vk6NY/wLtjv7pvLDu7ycBfO9zj9DQZdqRwCc3gkEIhVB1BQ=="
 }

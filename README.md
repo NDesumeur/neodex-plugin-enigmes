@@ -1,6 +1,6 @@
 # Valcendre : l'horloge aux énigmes
 
-Un jeu d'énigmes illustrées avec une histoire. Cette nuit, la grande horloge de Valcendre s'est arrêtée. Ses 180 rouages ont roulé dans toute la ville, et chaque habitant ne rend le sien qu'à qui résout son énigme.
+Un jeu d'énigmes illustrées avec une histoire. Cette nuit, la grande horloge de Valcendre s'est arrêtée. Ses 192 rouages ont roulé dans toute la ville, et chaque habitant ne rend le sien qu'à qui résout son énigme.
 
 *English version: [README.en.md](README.en.md)*
 
@@ -21,7 +21,7 @@ Le premier quartier est ouvert ; **résoudre 7 énigmes** d'un quartier ouvre le
 
 ## Les énigmes
 
-180 énigmes, chacune avec son illustration, d'une vingtaine de genres :
+192 énigmes, chacune avec son illustration, d'une vingtaine de genres :
 
 - **à manipuler** : allumettes à déplacer, passeurs et rivière, vases à verser, tuyaux à tourner, labyrinthes à clés, tours de Hanoï, taquins, grenouilles qui se croisent, tracés d'un seul trait ;
 - **de logique** : pièces qui ne se menacent pas, cartes à colorier, carrés latins, images à révéler (picross), dessins à compléter en miroir ;
@@ -42,7 +42,7 @@ Sur chaque énigme, un **brouillon** permet de griffonner par-dessus : stylo, ro
 
 ## La fin
 
-Quand tous les rouages sont rendus, l'horloge repart : une fin raconte la suite et affiche ton total d'étincelles. La barre du haut montre en permanence les rouages trouvés sur 180, tes étincelles et tes bougies.
+Quand tous les rouages sont rendus, l'horloge repart : une fin raconte la suite et affiche ton total d'étincelles. La barre du haut montre en permanence les rouages trouvés sur 192, tes étincelles et tes bougies.
 
 ## Données et synchronisation
 
@@ -53,3 +53,12 @@ Les énigmes résolues, tes essais, tes indices et tes bougies sont enregistrés
 Dans NeoDex : **NeoStore → À découvrir → Valcendre → Installer**.
 
 Développer un plugin : voir le [SDK NeoDex](https://github.com/NDesumeur/neodex-sdk).
+
+## Nouveautés de la version 1.2.0
+
+- **La Gare**, neuvième quartier, ouvert après 7 énigmes de l'Observatoire : Firmin le chef de gare propose 12 énigmes, dont deux nouveaux genres.
+  - **Bagages** : pousse chaque malle sur une croix (flèches, boutons ou clic ; ANNULER reprend le dernier pas).
+  - **Aiguillages** : relie les signaux de même couleur sans croiser les voies, en remplissant toute la grille.
+- **Carnet** : depuis la carte, retrouve les énigmes réussies et rejoue-les, sans étincelles ni bougies en jeu (bouton REJOUER aussi sous l'explication).
+- **Buts plus clairs** : le cadre « CE QU'IL FAUT TROUVER » dit vraiment ce qu'il faut faire, et comment jouer, pour une trentaine d'énigmes qui l'expliquaient mal.
+- Numéros d'énigme dans chaque quartier, titres de la carte qui tiennent dans leur cadre, chemins de « D'un seul trait » bien visibles.

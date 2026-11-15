@@ -73,7 +73,9 @@ export default async function (ctx) {
   .vc .dist{cursor:pointer;display:flex;flex-direction:column;gap:6px}
   .vc .dist:hover{transform:translateY(-${SC}px)}
   .vc .dist.lock{cursor:default;filter:grayscale(1) brightness(.55)} .vc .dist.lock:hover{transform:none}
-  .vc .who{display:flex;gap:10px;align-items:center}
+  .vc .who{display:flex;gap:10px;align-items:center} .vc .who>div{min-width:0}
+  .vc .dist h2{font-size:clamp(22px,1.6vw,28px);line-height:1;overflow-wrap:break-word}
+  .vc .flow{touch-action:none}
   .vc .blurb{color:${C.Q};font-size:21px;line-height:22px}
   .vc .prog{display:flex;gap:${SC}px;margin-top:4px} .vc .prog i{flex:1;height:${3 * SC}px;background:${C.P};box-shadow:0 0 0 ${SC}px ${C.q}} .vc .prog i.on{background:${C.g};box-shadow:0 0 0 ${SC}px ${C.G}}
   .vc .meds{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
@@ -272,7 +274,8 @@ export default async function (ctx) {
     thermes(g, W, H) { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px(g, x, y, y < H - 12 ? ((x % 8 === 0 || y % 8 === 0) ? C.E : ((Math.floor(x / 8) + Math.floor(y / 8)) % 2 ? C.e : C.s)) : y === H - 12 ? C.k : ((x + y) % 5 === 0 ? C.e : C.S)); for (let i = 0; i < 6; i++) for (let k = 0; k < 5; k++) px(g, 10 + i * 19 + (k % 2), H - 14 - k * 2, C.w); },
     mines(g, W, H) { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px(g, x, y, ((x * 13 + y * 7) % 23 === 0) ? C.X : ((x * 3 + y * 5) % 17 === 0) ? '#2a2430' : y > H - 8 ? (x % 4 === 0 ? C.Q : C.h) : C.d); for (const bx of [6, 58, 110]) for (let y = 0; y < H - 8; y++) for (let x = 0; x < 4; x++) px(g, bx + x, y, x === 0 || x === 3 ? C.k : C.b); for (let x = 0; x < W; x++) for (let y = 0; y < 3; y++) px(g, x, y, y === 2 ? C.k : C.b); },
     theatre(g, W, H) { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px(g, x, y, y > H - 9 ? ((x + y) % 8 === 0 ? C.h : C.b) : (x < 14 || x > W - 15) ? ((x % 4 === 0) ? C.R : C.r) : y < 6 ? (y === 5 ? C.y : (x % 4 < 2 ? C.R : C.r)) : C.k); for (let x = 20; x < W - 20; x += 16) px(g, x, 8, C.l); },
-    observatoire(g, W, H) { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px(g, x, y, y > H - 7 ? (x % 6 === 0 ? C.k : C.X) : y < 14 ? C.n : y < 26 ? ((x + y) % 2 ? C.n : C.N) : C.N); for (let i = 0; i < 40; i++) px(g, (i * 37) % W, (i * 23) % (H - 9), i % 5 ? C.w : C.l); },
+    observatoire(g, W, H) { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px(g, x, y, y > H - 7 ? (x % 6 === 0 ? C.k : C.X) : y < 14 ? C.n : y < 20 ? ((x + 2 * y) % 4 ? C.n : C.N) : y < 26 ? ((x + 2 * y) % 4 ? C.N : C.n) : C.N); for (let i = 0; i < 40; i++) px(g, (i * 37) % W, (i * 23) % (H - 9), i % 5 ? C.w : C.l); },
+    gare(g, W, H) { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px(g, x, y, y < 6 ? C.N : y === 6 ? C.k : y < H - 14 ? ((y % 6 === 5 || (x + (Math.floor(y / 6) % 2) * 5) % 10 === 0) ? C.Q : C.b) : y < H - 11 ? (y === H - 14 ? C.k : C.P) : (y === H - 8 || y === H - 4) ? C.W : (x % 6 < 2 && y > H - 9 ? C.h : C.d)); clockFace(g, 100, 17, 6, '10:10'); },
   };
   // un dessin d'énigme : le décor du quartier et les objets posés dessus. it : [nom, x, y, nombre, écart, retourné] ou ['#texte', x, y, couleur]
   function scene(d, items, W = 120, H = 44) {
@@ -308,6 +311,7 @@ export default async function (ctx) {
       '..kwwwwwwwwwwk..', '..kwwrwwwwrwwk..', '...kwwrrrrwwk...', '....kkwwwwkk....', '..kkyyykkyyykk..', '.kyyyyRyyRyyyyk.', '.kyyyyyyyyyyyyk.', '.kkkkkkkkkkkkkk.'],
     selene: ['......kkkk......', '....kkcccckk....', '...kcclcccccck..', '..kccccccccclck.', '..kkkkkkkkkkkk..', '...kVffffffVk...', '..kVfffffffFVk..', '..kVfwkfwkfFVk..',
       '..kVffffffffVk..', '..kVfffffffFVk..', '..kVffkkkkffVk..', '...kVffffffVk...', '..kkcccyycckk...', '.kcccccyycccck..', '.kccccccccccccck', '.kkkkkkkkkkkkkk.'],
+    firmin: ["................", "....kkkkkkkk....", "...kcccyycccck..", "..kcccccccccck..", ".kkkkkkkkkkkkkk.", "...kffffffffk...", "..kfffffffffFk..", "..kffkfffkffFk..", "..kfffffffffFk..", "..kfhhhffhhhFk..", "..kffffkkffFFk..", "...kffffffffk...", "....kkffffkk....", "..kkccckkccckk..", ".kcccccyyccccck.", ".kccccccyccccck."],
   });
   // </dessins>
   /* ---------- le ciel de Valcendre : nuit, étoiles, toits et la tour de l'horloge ---------- */
@@ -408,6 +412,7 @@ export default async function (ctx) {
     { id: 'mines', name: 'Les Mines de cuivre', who: 'gaspard', whoName: 'Gaspard, le mineur', blurb: 'Sous la ville, des galeries à perte de vue. Gaspard connaît chaque wagonnet.' },
     { id: 'theatre', name: 'Le Théâtre des automates', who: 'lyre', whoName: 'Madame Lyre, l\'automate', blurb: 'Les marionnettes de cuivre jouent toutes les nuits. Leur directrice adore les énigmes de logique.' },
     { id: 'observatoire', name: 'L\'Observatoire', who: 'selene', whoName: 'Sélène, l\'astronome', blurb: 'Au sommet de la colline, la lunette regarde les étoiles. Sélène y garde le tout dernier rouage.' },
+    { id: 'gare', name: 'La Gare', who: 'firmin', whoName: 'Firmin, le chef de gare', blurb: 'Les trains de nuit sifflent sur les quais. Firmin range ses bagages et ses voies comme des casse-tête.' },
   ];
   const P = [
     // le Marché
@@ -649,8 +654,26 @@ export default async function (ctx) {
     { d: 'observatoire', t: 'Le coffre de la comète', pts: 35, type: 'lock', a: '2062', sc: [['box', 54, 30], ['star', 80, 10]], q: 'Le coffre de Sélène s\'ouvre avec l\'année du prochain passage de la grande comète.\n\nElle revient tous les 76 ans, et on l\'a vue en 1986.', hints: ['1986 + 76 = ?'], why: '1986 + 76 = 2062.' },
     { d: 'observatoire', t: 'Le cadenas de la coupole', pts: 45, type: 'lock', a: '210', sc: [['padlock', 54, 28]], q: 'Le cadenas de la coupole a un code à trois chiffres.\n• C\'est le produit de trois nombres entiers qui se suivent (comme 2 × 3 × 4).\n• Il est compris entre 200 et 300.', hints: ['4 × 5 × 6 = 120, trop petit.', 'Essaie le suivant.'], why: '5 × 6 × 7 = 210. Le suivant, 6 × 7 × 8 = 336, est trop grand.' },
   );
+  P.push(
+    {"d": "gare", "t": "Le train de 8 h 15", "pts": 25, "type": "choice", "opts": ["10 h 55", "11 h 05", "11 h 15", "10 h 65"], "a": 1, "sc": [["clock", 60, 18, 9, "8:15"], ["wagon", 8, 30, 3, 16]], "q": "Le train de Firmin part à 8 h 15. Le voyage dure 2 heures et 50 minutes.\n\nÀ quelle heure arrive-t-il ?", "hints": ["Ajoute d'abord les 2 heures."], "why": "8 h 15 + 2 h = 10 h 15, puis + 50 minutes = 11 h 05."},
+    {"d": "gare", "t": "Les malles du quai", "pts": 25, "type": "sokoban", "map": ["########", "#--.---#", "#-$$---#", "#-@-#.-#", "########"], "sc": [["crate", 20, 24, 2, 14], ["person", 80, 22]], "q": "Deux malles traînent au milieu du quai. Firmin veut les ranger sur les croix peintes au sol.", "goal": "Pousse chaque bagage sur une croix rouge. On pousse, on ne tire jamais. Flèches du clavier, boutons ou touche une case voisine ; ANNULER reprend le dernier pas.", "hints": ["Ne pousse jamais un bagage dans un coin : il n'en ressortirait plus.", "Les quatre premiers pas : ↑ ← ↑ →."], "why": "On pouvait y arriver en 10 pas."},
+    {"d": "gare", "t": "Les aiguillages", "pts": 25, "type": "flow", "dots": ["a...b", ".c..d", ".eab.", "...e.", "..cd."], "sc": [["wagon", 8, 30, 3, 16]], "q": "Cinq trains doivent rejoindre leur signal de même couleur. Les voies ne se croisent jamais.", "goal": "Relie chaque paire de signaux de même couleur par une voie, sans croiser les autres, et remplis toutes les cases. Glisse le doigt ou la souris depuis un signal.", "hints": ["Commence par les paires collées au bord ou toutes proches.", "Aucune case ne doit rester vide : une voie peut faire des détours."], "why": "Toutes les voies sont reliées et la gare est pleine."},
+    {"d": "gare", "t": "Les wagons décrochés", "pts": 25, "type": "num", "a": 10, "unit": "wagons", "sc": [["wagon", 4, 30, 6, 16]], "q": "Le train de marchandises compte 12 wagons. Firmin en décroche un sur trois, puis en raccroche 2 neufs.\n\nCombien de wagons a le train maintenant ?", "hints": ["Un sur trois, parmi 12 : combien en décroche-t-il ?"], "why": "12 ÷ 3 = 4 wagons décrochés : il en reste 8, plus 2 neufs, soit 10."},
+    {"d": "gare", "t": "Le fourgon à bagages", "pts": 30, "type": "sokoban", "map": ["########", "#---#--#", "#-$-$--#", "#.#-#-.#", "#--@---#", "########"], "sc": [["sack", 30, 26], ["crate", 60, 25]], "q": "Le fourgon est en désordre : deux valises bloquent le passage.", "goal": "Pousse chaque bagage sur une croix rouge. On pousse, on ne tire jamais. Flèches du clavier, boutons ou touche une case voisine ; ANNULER reprend le dernier pas.", "hints": ["Ne pousse jamais un bagage dans un coin : il n'en ressortirait plus.", "Les quatre premiers pas : ↑ ↑ ← ↑."], "why": "On pouvait y arriver en 13 pas."},
+    {"d": "gare", "t": "Le dépôt des locomotives", "pts": 30, "type": "flow", "dots": ["a...b.", "c...d.", ".e.a..", ".fcd..", "...fg.", ".eg..b"], "sc": [["wagon", 8, 30, 3, 16]], "q": "Au dépôt, sept locomotives attendent d'être reliées à leur hangar.", "goal": "Relie chaque paire de signaux de même couleur par une voie, sans croiser les autres, et remplis toutes les cases. Glisse le doigt ou la souris depuis un signal.", "hints": ["Commence par les paires collées au bord ou toutes proches.", "Aucune case ne doit rester vide : une voie peut faire des détours."], "why": "Toutes les voies sont reliées et la gare est pleine."},
+    {"d": "gare", "t": "La consigne", "pts": 35, "type": "sokoban", "map": ["########", "##-.--##", "#--$$--#", "#-#@.#-#", "#--$---#", "##--.-##", "########"], "sc": [["sack", 24, 26, 3, 14]], "q": "À la consigne, trois sacs de voyageurs doivent retrouver leur place.", "goal": "Pousse chaque bagage sur une croix rouge. On pousse, on ne tire jamais. Flèches du clavier, boutons ou touche une case voisine ; ANNULER reprend le dernier pas.", "hints": ["Ne pousse jamais un bagage dans un coin : il n'en ressortirait plus.", "Les quatre premiers pas : ↑ ↓ ↓ ←."], "why": "On pouvait y arriver en 16 pas."},
+    {"d": "gare", "t": "Le coffre du chef de gare", "pts": 35, "type": "lock", "a": "642", "sc": [["box", 54, 30]], "q": "Firmin range la recette des billets dans un coffre à trois chiffres.\n• Les trois chiffres sont pairs et tous différents.\n• Ils vont du plus grand au plus petit.\n• Leur somme fait 12.\n• Le dernier n'est pas zéro.", "goal": "Trouve le code à trois chiffres grâce aux indices, puis règle les molettes.", "hints": ["Les chiffres pairs : 0, 2, 4, 6, 8.", "Sans le zéro, une seule façon de faire 12."], "why": "Sans zéro, trois chiffres pairs différents qui font 12 : 2, 4 et 6. Du plus grand au plus petit : 642."},
+    {"d": "gare", "t": "Le plan des voies", "pts": 35, "type": "flow", "dots": ["ab...c", ".d.e..", "....b.", "f.d.e.", ".ag.g.", ".fh.hc"], "sc": [["wagon", 8, 30, 3, 16]], "q": "Le plan de la gare a été effacé. Retrace les huit voies.", "goal": "Relie chaque paire de signaux de même couleur par une voie, sans croiser les autres, et remplis toutes les cases. Glisse le doigt ou la souris depuis un signal.", "hints": ["Commence par les paires collées au bord ou toutes proches.", "Aucune case ne doit rester vide : une voie peut faire des détours."], "why": "Toutes les voies sont reliées et la gare est pleine."},
+    {"d": "gare", "t": "Les colis du soir", "pts": 40, "type": "sokoban", "map": ["#######", "#.--#-#", "#-$-$-#", "#--@--#", "#-#--.#", "#######"], "sc": [["crate", 30, 25, 3, 14]], "q": "Le dernier train apporte trois colis. Il faut les poser sur les croix avant minuit.", "goal": "Pousse chaque bagage sur une croix rouge. On pousse, on ne tire jamais. Flèches du clavier, boutons ou touche une case voisine ; ANNULER reprend le dernier pas.", "hints": ["Ne pousse jamais un bagage dans un coin : il n'en ressortirait plus.", "Les quatre premiers pas : ← ↑ ↓ →."], "why": "On pouvait y arriver en 20 pas."},
+    {"d": "gare", "t": "La grande gare de triage", "pts": 45, "type": "flow", "dots": ["a.....b", "....d..", "..e..a.", "..fc.b.", "...g..d", ".e...gh", ".c.fh.."], "sc": [["wagon", 8, 30, 3, 16]], "q": "La gare de triage, la plus grande de Valcendre : huit voies à relier dans tout le réseau.", "goal": "Relie chaque paire de signaux de même couleur par une voie, sans croiser les autres, et remplis toutes les cases. Glisse le doigt ou la souris depuis un signal.", "hints": ["Commence par les paires collées au bord ou toutes proches.", "Aucune case ne doit rester vide : une voie peut faire des détours."], "why": "Toutes les voies sont reliées et la gare est pleine."},
+    {"d": "gare", "t": "Le grand déménagement", "pts": 45, "type": "sokoban", "map": ["#########", "#---.---#", "#-#$#$#-#", "#---@---#", "#-#$#-#-#", "#.--.---#", "#########"], "sc": [["crate", 16, 25, 4, 14], ["person", 90, 22]], "q": "Toute la troupe du théâtre part en tournée : quatre malles à charger, et un quai encombré de piliers.", "goal": "Pousse chaque bagage sur une croix rouge. On pousse, on ne tire jamais. Flèches du clavier, boutons ou touche une case voisine ; ANNULER reprend le dernier pas.", "hints": ["Ne pousse jamais un bagage dans un coin : il n'en ressortirait plus.", "Les quatre premiers pas : ← ↑ ↓ ↓."], "why": "On pouvait y arriver en 41 pas."},
+  );
   // </enigmes>
   P.forEach((p, i) => { p.n = i + 1; p.id = 'e' + p.n; });
+  const GOALS = {"11": "Range les caisses de 1 à 8, la place vide en bas à droite. Touche une caisse voisine de la place vide pour la faire glisser.", "39": "Trouve le code à trois chiffres grâce aux cinq notes, puis règle les molettes.", "41": "Fais passer les trois de l'autre côté sans que personne ne soit mangé. Touche un passager pour le faire monter ou descendre, puis TRAVERSER.", "45": "Trouve la clé dans les ruelles, puis rejoins la porte des quais en bas à droite. Flèches du clavier ou boutons pour avancer.", "46": "Fais changer de côté les deux équipes : celle de gauche doit finir à droite, et l'inverse. Touche un personnage : il avance d'une place, ou saute par-dessus UN voisin. Jamais en arrière.", "51": "Mets les trois poids sur le dernier crochet, en 7 déplacements au plus. Un seul poids à la fois, jamais sur un plus petit. Touche un crochet pour prendre le poids du dessus, puis un autre pour le poser.", "54": "Trouve le code à quatre chiffres grâce aux indices, puis règle les molettes.", "56": "Passe par chaque trait une seule fois, sans lever le crayon ni repasser. Touche le point de départ, puis les points un à un.", "57": "Refais la moitié droite en miroir exact de la gauche. Touche une case pour changer sa couleur.", "62": "Noircis les cases : chaque nombre donne la longueur d'un bloc de cases noires, dans l'ordre. Le bouton MODE pose des croix sur les cases sûres d'être vides.", "63": "Noircis les cases : chaque nombre donne la longueur d'un bloc de cases noires, dans l'ordre. Le bouton MODE pose des croix sur les cases sûres d'être vides.", "64": "Colorie tous les parterres sans que deux voisins (par un côté) aient la même couleur. Touche une case pour changer sa couleur.", "65": "Colorie tous les massifs sans que deux voisins (par un côté) aient la même couleur. Touche une case pour changer sa couleur.", "70": "Range-les du plus léger (à gauche) au plus lourd. Touche deux aliments pour les échanger.", "71": "Fais changer de côté les deux équipes : celle de gauche doit finir à droite, et l'inverse. Touche un personnage : il avance d'une place, ou saute par-dessus UN voisin. Jamais en arrière.", "91": "Tourne les tuyaux pour amener l'eau de la vanne (au milieu à gauche) jusqu'à la vasque (en bas au milieu). Touche un tuyau pour le faire tourner.", "92": "Tourne les tuyaux pour amener l'eau de la chaudière (en haut à droite) jusqu'au grand bain (en bas à droite). Touche un tuyau pour le faire tourner.", "105": "Trouve le code à trois chiffres grâce aux indices, puis règle les molettes.", "106": "Trouve le code à trois chiffres grâce aux indices, puis règle les molettes.", "114": "Range les wagonnets de 1 à 8, la place vide en bas à droite. Touche un wagonnet voisin de la place vide pour le faire rouler.", "119": "Mets les quatre lingots sur le dernier socle, en 15 déplacements au plus. Un seul lingot à la fois, jamais sur un plus petit. Touche un socle pour prendre le lingot du dessus, puis un autre pour le poser.", "120": "Passe par chaque trait une seule fois, sans lever le crayon ni repasser. Touche le point de départ, puis les points un à un.", "141": "Noircis les cases : chaque nombre donne la longueur d'un bloc de cases noires, dans l'ordre. Le bouton MODE pose des croix sur les cases sûres d'être vides.", "142": "Fais changer de côté les deux équipes : celle de gauche doit finir à droite, et l'inverse. Touche un personnage : il avance d'une place, ou saute par-dessus UN voisin. Jamais en arrière.", "159": "Passe par chaque trait une seule fois, sans lever le crayon ni repasser. Touche le point de départ, puis les points un à un.", "160": "Passe par chaque trait une seule fois, sans lever le crayon ni repasser. Touche le point de départ, puis les points un à un.", "162": "Colorie toutes les constellations sans que deux voisins (par un côté) aient la même couleur. Touche une case pour changer sa couleur.", "163": "Colorie toutes les régions sans que deux voisins (par un côté) aient la même couleur. Touche une case pour changer sa couleur.", "179": "Trouve l'année du prochain passage de la comète, puis règle-la sur les molettes.", "180": "Trouve le code à trois chiffres grâce aux indices, puis règle les molettes."};
+  for (const n in GOALS) P[n - 1].goal ??= GOALS[n];
+  for (const n of [11, 114, 41, 46, 71, 142, 51, 119, 56, 120, 159, 57, 64]) P[n - 1].q = P[n - 1].q.split(/\n\n+/).slice(0, -1).join('\n\n');  // la consigne passe dans le but
+  const rank = p => P.filter(x => x.d === p.d).indexOf(p) + 1;  // le numéro dans le quartier
   const TOTAL = P.length, UNLOCK = 7;
 
   /* ---------- la partie, gardée par NeoDex ---------- */
@@ -694,19 +717,34 @@ export default async function (ctx) {
       if (open) c.onclick = () => district(d);
       g.append(c);
     });
-    wrap.replaceChildren(top(title, 'Titre'), g);
+    const bar = top(title, 'Titre'), nb = el('button', 'dark', 'CARNET'); nb.onclick = carnet; bar.children[0].after(nb);
+    wrap.replaceChildren(bar, g);
     if (Object.keys(st.solved).length === TOTAL && !st.ending) { st.ending = true; save(); ending(); }
   }
   function district(d) {
     const m = el('div', 'meds');
     for (const p of P.filter(x => x.d === d.id)) {
       const ok = st.solved[p.id], b = el('div', 'med' + (ok ? ' ok' : '')), cg = el('div', 'cog');
-      cg.append(cog(!!ok), el('b', '', String(p.n)));
+      cg.append(cog(!!ok), el('b', '', String(rank(p))));
       b.append(cg, el('span', '', p.t), el('em', '', kindOf(p)), el('small', '', ok ? ok + ' étincelles' : 'vaut ' + worth(p)));
       b.onclick = () => puzzle(p, d); m.append(b);
     }
     const h = el('div', 'parch'), who = el('div', 'who'), txt = el('div'); txt.append(el('h2', '', d.name), el('div', 'blurb', d.blurb)); who.append(face(d.who, 4), txt); h.append(who);
     wrap.replaceChildren(top(map, 'Carte'), h, m); scrollTop();
+  }
+
+  // le carnet : les énigmes réussies, quartier par quartier, à rejouer sans rien gagner ni perdre
+  function carnet() {
+    const box = el('div'), h = el('div', 'parch'), n = Object.keys(st.solved).length;
+    h.append(el('h2', '', 'Le carnet'), el('div', 'blurb', n ? 'Les ' + n + ' énigmes que tu as réussies. Touche-en une pour la rejouer : ni étincelles ni bougies en jeu, et tous les indices sont offerts.' : 'Ton carnet est vide : résous une énigme, elle viendra s\'y ranger.'));
+    box.append(h);
+    for (const d of D) {
+      const done = P.filter(p => p.d === d.id && st.solved[p.id]); if (!done.length) continue;
+      const m = el('div', 'meds');
+      for (const p of done) { const b = el('div', 'med ok'), cg = el('div', 'cog'); cg.append(cog(true), el('b', '', String(rank(p)))); b.append(cg, el('span', '', p.t), el('em', '', kindOf(p))); b.onclick = () => puzzle(p, d, true); m.append(b); }
+      box.append(el('div', 'label', d.name), m);
+    }
+    wrap.replaceChildren(top(map, 'Carte'), box); scrollTop();
   }
 
   /* ---------- les figures des énigmes, au pixel ---------- */
@@ -1069,8 +1107,8 @@ export default async function (ctx) {
     const W = p.w || 96, H = p.h || 60, used = new Set(), info = note(''); let at = -1;
     const key = (a, z) => Math.min(a, z) + '-' + Math.max(a, z);
     const draw = () => {
-      const g = c.getContext('2d'); (BACK[p.bg] || BACK.observatoire)(g, W, H);
-      p.edges.forEach(([a, z]) => { const [x0, y0] = p.nodes[a], [x1, y1] = p.nodes[z], u = used.has(key(a, z)); if (u) { line(g, x0, y0, x1, y1, C.l); line(g, x0 + 1, y0, x1 + 1, y1, C.y); } else { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 3); for (let i = 0; i <= n; i += 2) px(g, Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), C.W); } });
+      const g = c.getContext('2d'); (BACK[p.bg] || BACK.observatoire)(g, W, H); if (!p.bg || p.bg === 'observatoire') { g.fillStyle = C.N; g.fillRect(0, H - 7, W, 7); } g.fillStyle = 'rgba(13,20,48,.55)'; g.fillRect(0, 0, W, H);
+      p.edges.forEach(([a, z]) => { const [x0, y0] = p.nodes[a], [x1, y1] = p.nodes[z], u = used.has(key(a, z)); if (u) { line(g, x0, y0, x1, y1, C.l); line(g, x0 + 1, y0, x1 + 1, y1, C.y); } else { line(g, x0, y0, x1, y1, C.k); line(g, x0 + 1, y0, x1 + 1, y1, C.k); line(g, x0, y0 + 1, x1, y1 + 1, C.k); const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 3); for (let i = 0; i <= n; i += 2) px(g, Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), C.p); } });
       p.nodes.forEach(([x, y], i) => stamp(g, i === at ? ['.kkk.', 'klllk', 'klwlk', 'klllk', '.kkk.'] : ['.kkk.', 'kyyyk', 'kyYyk', 'kYYYk', '.kkk.'], x - 2, y - 2));
       info.textContent = `${used.size} / ${p.edges.length} chemins` + (at < 0 ? ' · touche un point pour commencer' : '');
       if (used.size === p.edges.length) solvedOnce(b, win)();
@@ -1120,14 +1158,87 @@ export default async function (ctx) {
     const b = el('div', 'board'); b.append(c); reset();
     return [b, info, btn('RECOMMENCER', () => { delete b.dataset.done; reset(); })];
   }
-  const ENGINES = { lights, slide, magic, match, river, jugs, queens, color, pipes, order, picross, mirror, hanoi, maze, lock, clockset, pick, oneline, latin, frogs };
+  // les bagages : pousse chaque malle sur une croix ; on pousse, on ne tire jamais
+  const SUIT = ['..kkkk..', '..k..k..', 'kkkkkkkk', 'kbbhbbbk', 'kbbhbbbk', 'kyyyyyyk', 'kbbhbbbk', 'kkkkkkkk'];
+  function sokoban(p, win) {
+    const S = 10, R = p.map.length, Q = p.map[0].length, info = note(''); let at, box, hist;
+    const wall = (r, q) => p.map[r][q] === '#', mark = (r, q) => '.*+'.includes(p.map[r][q]), placed = () => [...box].filter(i => mark(Math.floor(i / Q), i % Q)).length;
+    const reset = () => { box = new Set(); hist = []; p.map.forEach((row, r) => [...row].forEach((ch, q) => { if ('@+'.includes(ch)) at = [r, q]; if ('$*'.includes(ch)) box.add(r * Q + q); })); draw(); };
+    const draw = () => {
+      const g = c.getContext('2d');
+      for (let r = 0; r < R; r++) for (let q = 0; q < Q; q++) {
+        const x = q * S, y = r * S;
+        for (let yy = 0; yy < S; yy++) for (let xx = 0; xx < S; xx++) px(g, x + xx, y + yy, wall(r, q) ? ((yy % 5 === 4 || (xx + (yy > 4 ? 5 : 0)) % 10 === 0) ? C.Q : C.b) : ((xx + yy * 3) % 7 === 0 ? C.P : C.p));
+        if (mark(r, q)) for (let k = 2; k < 8; k++) { px(g, x + k, y + k, C.r); px(g, x + 9 - k, y + k, C.r); }
+        if (box.has(r * Q + q)) stamp(g, SUIT, x + 1, y + 1, mark(r, q) ? { ...C, b: C.g, h: C.G } : C);
+      }
+      stamp(g, ['..kk..', '.kffk.', '.kffk.', 'kcccck', '.kcck.', '.k..k.'], at[1] * S + 2, at[0] * S + 2);
+      info.textContent = `Pas : ${hist.length} · bagages placés : ${placed()} / ${box.size}`;
+    };
+    const go = (dr, dq) => {
+      if (b.dataset.done) return; const r = at[0] + dr, q = at[1] + dq, i = r * Q + q; if (wall(r, q)) return;
+      if (box.has(i)) { const j = i + dr * Q + dq; if (wall(r + dr, q + dq) || box.has(j)) return; hist.push([at, new Set(box)]); box.delete(i); box.add(j); } else hist.push([at, new Set(box)]);
+      at = [r, q]; draw(); if (placed() === box.size) solvedOnce(b, win)();
+    };
+    const undo = () => { if (b.dataset.done || !hist.length) return; [at, box] = hist.pop(); draw(); };
+    const c = pad(Q * S, R * S, 4, (x, y) => { const dq = Math.floor(x / S) - at[1], dr = Math.floor(y / S) - at[0]; if (Math.abs(dq) + Math.abs(dr) === 1) go(dr, dq); });
+    const b = el('div', 'board'); b.append(c); b.tabIndex = 0;
+    b.onkeydown = e => { const k = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key]; if (k) { e.preventDefault(); go(...k); } else if (e.key === 'Backspace' || e.key === 'z') { e.preventDefault(); undo(); } };
+    reset(); setTimeout(() => b.focus({ preventScroll: true }), 80);
+    return [b, info, row2(btn('◀', () => go(0, -1)), btn('▲', () => go(-1, 0)), btn('▼', () => go(1, 0)), btn('▶', () => go(0, 1)), btn('ANNULER', undo), btn('RECOMMENCER', () => { delete b.dataset.done; reset(); }))];
+  }
+
+  // les aiguillages : relie chaque paire de signaux de même couleur, sans croiser, en remplissant toute la grille
+  function flow(p, win) {
+    const n = p.dots.length, S = 12, W = n * S + 1, info = note(''), end = p.dots.map(r => [...r]);
+    const cols = [...new Set(p.dots.join('').replace(/\./g, ''))].sort(), FC = [C.r, C.S, C.g, C.y, C.V, C.o, C.e, C.w];
+    const col = k => FC[cols.indexOf(k) % FC.length], same = (a, z) => a[0] === z[0] && a[1] === z[1];
+    let paths = {}, cur = null;
+    const owner = (r, q) => cols.find(k => paths[k]?.some(c => c[0] === r && c[1] === q)) || null;
+    const linked = k => { const pa = paths[k]; return !!pa && pa.length > 1 && end[pa[0][0]][pa[0][1]] === k && end[pa.at(-1)[0]][pa.at(-1)[1]] === k; };
+    const filled = () => cols.reduce((s, k) => s + (paths[k]?.length || 0), 0);
+    const draw = () => {
+      const g = c.getContext('2d'); g.fillStyle = C.k; g.fillRect(0, 0, W, W);
+      for (let r = 0; r < n; r++) for (let q = 0; q < n; q++) { const o = owner(r, q); g.fillStyle = o ? C.D : C.d; g.fillRect(q * S + 1, r * S + 1, S - 1, S - 1); }
+      for (const k of cols) { const pa = paths[k] || []; g.fillStyle = col(k);
+        pa.forEach(([r, q], i) => { const x = q * S + 5, y = r * S + 5; g.fillRect(x, y, 3, 3); if (i) { const [r0, q0] = pa[i - 1], x0 = q0 * S + 5, y0 = r0 * S + 5; g.fillRect(Math.min(x, x0), Math.min(y, y0), Math.abs(x - x0) + 3, Math.abs(y - y0) + 3); } }); }
+      for (let r = 0; r < n; r++) for (let q = 0; q < n; q++) if (end[r][q] !== '.') stamp(g, ['..kkkkk..', '.kcwccck.', 'kcwcccccC', 'kcccccccC', 'kcccccccC', 'kcccccccC', 'kcccccccC', '.kcccccC.', '..CCCCC..'].map(t => t.replace(/C$/, 'k').replace(/C/g, 'k')), q * S + 2, r * S + 2, { ...C, c: col(end[r][q]) });
+      const ok = cols.filter(linked).length;
+      info.textContent = `Voies reliées : ${ok} / ${cols.length} · cases remplies : ${filled()} / ${n * n}`;
+      if (ok === cols.length && filled() === n * n) solvedOnce(b, win)();
+    };
+    const down = (r, q) => {
+      if (b.dataset.done) return;
+      if (end[r][q] !== '.') { cur = end[r][q]; paths[cur] = [[r, q]]; }
+      else { const o = owner(r, q); if (!o) return; cur = o; paths[o] = paths[o].slice(0, paths[o].findIndex(c => same(c, [r, q])) + 1); }
+      draw();
+    };
+    const move = (r, q) => {
+      if (!cur || b.dataset.done || r < 0 || q < 0 || r >= n || q >= n) return; const pa = paths[cur], last = pa.at(-1);
+      if (same(last, [r, q]) || Math.abs(last[0] - r) + Math.abs(last[1] - q) !== 1) return;  // shortcut: un geste trop rapide qui saute une case est ignoré
+      const back = pa.findIndex(c => same(c, [r, q])); if (back >= 0) { pa.length = back + 1; draw(); return; }
+      if (linked(cur)) return;
+      const e = end[r][q]; if (e !== '.' && e !== cur) return;
+      const o = owner(r, q); if (o && o !== cur) { paths[o] = paths[o].slice(0, paths[o].findIndex(c => same(c, [r, q]))); if (!paths[o].length) delete paths[o]; }
+      pa.push([r, q]); draw();
+    };
+    const c = cv(W, W); c.className = 'spr flow'; c.style.cssText = `width:${W * 4}px;max-width:100%;height:auto;image-rendering:pixelated;cursor:pointer`;
+    const at = e => { const rc = c.getBoundingClientRect(); return [Math.floor((e.clientY - rc.top) / rc.height * n), Math.floor((e.clientX - rc.left) / rc.width * n)]; };
+    c.onpointerdown = e => { c.setPointerCapture?.(e.pointerId); down(...at(e)); };
+    c.onpointermove = e => { if (cur) move(...at(e)); };
+    c.onpointerup = c.onpointercancel = () => { cur = null; };
+    c.__fl = { down, move, up: () => { cur = null; } };  // pour le test « local »
+    const b = el('div', 'board'); b.append(c); draw();
+    return [b, info, btn('TOUT EFFACER', () => { if (b.dataset.done) return; paths = {}; cur = null; draw(); })];
+  }
+  const ENGINES = { sokoban, flow, lights, slide, magic, match, river, jugs, queens, color, pipes, order, picross, mirror, hanoi, maze, lock, clockset, pick, oneline, latin, frogs };
   // </moteurs>
   /* ---------- une énigme ---------- */
   const SAYS = ['Voyons si tu es aussi malin qu\'on le dit.', 'Prends ton temps, la marée attendra.', 'Les archives ne s\'ouvrent qu\'aux esprits patients.', 'Une fleur ne pousse pas plus vite si on tire dessus.',
-    'Respire la vapeur, et réfléchis tranquillement.', 'Dans la mine, on avance pas à pas.', 'Le rideau se lève : à toi de jouer !', 'Les étoiles ont tout leur temps. Et toi ?'];
+    'Respire la vapeur, et réfléchis tranquillement.', 'Dans la mine, on avance pas à pas.', 'Le rideau se lève : à toi de jouer !', 'Les étoiles ont tout leur temps. Et toi ?', 'Le train n\'attend pas, mais l\'énigme, si.'];
   // le genre de chaque énigme, avec son petit dessin
   const KINDS = { Calcul: 'coin', Logique: 'key', Mots: 'book', Manipulation: 'lamp', Observation: 'star', Déduction: 'mask', Astuce: 'bell' };
-  const ENGINE_KIND = { num: 'Calcul', text: 'Mots', choice: 'Logique', pick: 'Observation', order: 'Déduction', lock: 'Déduction', clockset: 'Calcul', color: 'Logique', latin: 'Logique', picross: 'Logique', queens: 'Logique', mirror: 'Observation' };
+  const ENGINE_KIND = { num: 'Calcul', text: 'Mots', choice: 'Logique', pick: 'Observation', order: 'Déduction', lock: 'Déduction', clockset: 'Calcul', color: 'Logique', flow: 'Logique', latin: 'Logique', picross: 'Logique', queens: 'Logique', mirror: 'Observation' };
   const kindOf = p => (typeof p.k === 'string' && p.k) || ENGINE_KIND[p.type] || 'Manipulation'; // pour « color », k est le nombre de couleurs
   // le brouillon : un carnet pour griffonner par-dessus l'énigme
   const memos = {};
@@ -1152,32 +1263,33 @@ export default async function (ctx) {
     const m = q.match(/^([\s\S]*[.!»])\s+([^.!?»]*[^\s][^.!»]*[.!?]?)$/); return m && m[1].length > 20 ? [m[1], m[2]] : ['', q];
   }
   console.assert(splitQ('Une histoire.\n\nTrouve X.')[1] === 'Trouve X.' && splitQ('Il fait nuit sur le port ce soir. Combien de bateaux ?')[1] === 'Combien de bateaux ?' && splitQ('Combien ?')[1] === 'Combien ?', 'splitQ');
-  function puzzle(p, d) {
+  function puzzle(p, d, replay) {  // replay : rejouée depuis le carnet, sans étincelles ni essais comptés
     const card = el('div', 'parch pz'), head = el('div', 'head'), msg = el('div', 'msg'), stamp = el('div', 'stamp'), after = el('div');
-    const solved = () => st.solved[p.id], val = el('span', 'val');
-    const setVal = () => { val.textContent = solved() ? 'résolue : ' + solved() + ' étincelles' : 'vaut ' + worth(p) + ' étincelles'; };
+    const solved = () => !replay && st.solved[p.id], val = el('span', 'val');
+    const setVal = () => { val.textContent = replay ? 'rejouée pour le plaisir' : solved() ? 'résolue : ' + solved() + ' étincelles' : 'vaut ' + worth(p) + ' étincelles'; };
     const kind = el('span', 'kind'); kind.append(sprite(SPR[KINDS[kindOf(p)]] || SPR.key, 2), kindOf(p));
     const memoBtn = el('button', 'dark small', 'BROUILLON'); memoBtn.onclick = () => { if (!card.querySelector('.memo')) memo(p, card); card.querySelector('.memo')?.scrollIntoView({ block: 'nearest' }); };
-    head.append(el('span', 'num', String(p.n)), el('h2', '', p.t), kind, val, memoBtn); setVal();
+    head.append(el('span', 'num', String(rank(p))), el('h2', '', p.t), kind, val, memoBtn); setVal();
     const says = el('div', 'says'); says.append(face(d.who, 3), el('div', 'bubble', d.whoName.split(',')[0] + ' : « ' + SAYS[D.indexOf(d)] + ' »'));
     card.append(head);
     if (p.sc) { const sc = el('div', 'scene'); sc.append(scene(p.d, p.sc)); card.append(sc); }
-    const [story, goal] = splitQ(p.q), gb = el('div', 'goal'); gb.append(el('b', '', 'CE QU\'IL FAUT TROUVER'), goal);
+    const [story, goal] = p.goal ? [p.q, p.goal] : splitQ(p.q), gb = el('div', 'goal'); gb.append(el('b', '', 'CE QU\'IL FAUT TROUVER'), goal);
     card.append(says); if (story) card.append(el('div', 'q', story)); card.append(gb, stamp);
     if (p.fig) card.append(FIG[p.fig]());
     const showWhy = () => {
       after.replaceChildren(el('div', 'why', p.why));
       const list = P.filter(x => x.d === p.d), nx = list[list.indexOf(p) + 1], row = el('div', 'ans'), back = el('button', 'dark', 'RETOUR AU QUARTIER'); back.onclick = () => district(d); row.append(back);
+      if (!replay) { const rp = el('button', 'dark', 'REJOUER'); rp.onclick = () => puzzle(p, d, true); row.append(rp); }
       if (nx) { const go = el('button', '', 'ÉNIGME SUIVANTE >'); go.onclick = () => puzzle(nx, d); row.append(go); }
       after.append(row);
     };
     const flash = good => { stamp.className = 'stamp ' + (good ? 'good' : 'bad'); stamp.textContent = good ? 'JUSTE !' : 'RATÉ'; requestAnimationFrame(() => stamp.classList.add('on')); setTimeout(() => stamp.classList.remove('on'), good ? 1600 : 900); };
     const ans = el('div', 'ans');
     const win = () => {
-      if (!solved()) { st.solved[p.id] = worth(p); st.bougies += 1; save(); }
+      if (!replay && !solved()) { st.solved[p.id] = worth(p); st.bougies += 1; save(); }
       setVal(); msg.textContent = ''; flash(true); ans.querySelectorAll('button,input').forEach(x => { if (!x.closest('.board')) x.disabled = true; }); showWhy(); refreshBar(); drawHints();
     };
-    const lose = (text, noCost) => { if (!noCost && !solved()) { st.tries[p.id] = (st.tries[p.id] || 0) + 1; save(); setVal(); } flash(false); msg.textContent = text || 'Ce n\'est pas ça. Réfléchis encore, ou allume une bougie.'; };
+    const lose = (text, noCost) => { if (!noCost && !replay && !solved()) { st.tries[p.id] = (st.tries[p.id] || 0) + 1; save(); setVal(); } flash(false); msg.textContent = text || 'Ce n\'est pas ça. Réfléchis encore, ou allume une bougie.'; };
     if (p.type === 'num' || p.type === 'text') {
       const i = el('input'); i.placeholder = p.type === 'num' ? 'ta réponse' : 'ton mot'; if (p.type === 'num') i.inputMode = 'decimal';
       const ok = el('button', '', 'RÉPONDRE');
@@ -1195,7 +1307,7 @@ export default async function (ctx) {
     const hints = el('div', 'hints'), opened = () => st.hints[p.id] || 0;
     function drawHints() {
       hints.replaceChildren(...p.hints.map((h, k) => {
-        if (k < opened() || solved()) { const c = el('div', 'hint'); c.append(candle(), el('span', '', h)); return c; }
+        if (k < opened() || solved() || replay) { const c = el('div', 'hint'); c.append(candle(), el('span', '', h)); return c; }
         const c = el('div', 'hint closed'); c.append(candle(), el('span', '', k === opened() ? (st.bougies ? 'Allumer une bougie (il t\'en reste ' + st.bougies + ')' : 'Plus de bougies : résous une énigme pour en gagner une') : 'Indice ' + (k + 1)));
         if (k === opened() && st.bougies) c.onclick = () => { st.bougies--; st.hints[p.id] = opened() + 1; save(); drawHints(); refreshBar(); };
         return c;
@@ -1215,6 +1327,6 @@ export default async function (ctx) {
     const b = el('button', '', 'REVENIR À LA CARTE'); b.onclick = map; f.append(b);
     wrap.replaceChildren(f);
   }
-  globalThis.__valcendre = { P, D, puzzle, district, map };  // pour le test automatique de NeoDex
+  globalThis.__valcendre = { P, D, puzzle, district, map, carnet };  // pour le test automatique de NeoDex
   title();
 }

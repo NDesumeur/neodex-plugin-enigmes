@@ -115,6 +115,10 @@ export default async function (ctx) {
   .vc .board .cell:active{transform:translateY(${SC}px)}
   .vc .tile b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:44px 'Jersey 10',monospace;color:${C.k};text-shadow:2px 2px 0 ${C.y}}
   .vc .magic input{width:${22 * SC}px;height:${22 * SC}px;text-align:center;font:44px 'Jersey 10',monospace;padding:0}
+  .vc .talk{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:12px;align-items:stretch} .vc .tlines{display:flex;flex-direction:column;gap:12px} .vc .tline{display:flex;gap:12px;align-items:center}
+  .vc .tline .bubble{flex:1;font-size:22px;line-height:1.15} .vc .narr{font-style:italic} .vc .talk>button{align-self:flex-end} .vc .chapter{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+  .vc .clue{margin-top:8px} .vc .clue.lock .blurb{color:${C.q}} .vc .clue.lock>div:first-child{filter:grayscale(1) brightness(.75)} .vc .note{font-style:italic} .vc .suspects{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0} .vc .suspect{display:flex;align-items:center;gap:8px}
+  .vc .plume{position:absolute;right:8px;bottom:6px;cursor:pointer;line-height:0;opacity:.9} .vc .plume:hover{opacity:1;filter:drop-shadow(0 0 3px #fff)}
   .vc .final{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
   .vc .scene{${bi(F.brass)};padding:0;margin:0 0 10px;display:flex;justify-content:center;background:${C.k}}
   .vc .scene canvas{width:100%!important;height:auto!important;max-width:${120 * 5}px}
@@ -717,11 +721,13 @@ export default async function (ctx) {
       if (open) c.onclick = () => district(d);
       g.append(c);
     });
-    const bar = top(title, 'Titre'), nb = el('button', 'dark', 'CARNET'); nb.onclick = carnet; bar.children[0].after(nb);
+    for (const d of D) if (solvedIn(d.id) >= UNLOCK && !st.clues[d.id]) { st.clues[d.id] = 1; save(); }  // les quartiers finis avant la 1.3.0
+    const bar = top(title, 'Titre'), nb = el('button', 'dark', 'CARNET'), eq = el('button', 'dark', 'ENQUÊTE'); nb.onclick = carnet; eq.onclick = enquete; bar.children[0].after(nb, eq);
     wrap.replaceChildren(bar, g);
     if (Object.keys(st.solved).length === TOTAL && !st.ending) { st.ending = true; save(); ending(); }
   }
   function district(d) {
+    if (!st.seen[d.id] && STORY[d.id]) { st.seen[d.id] = 1; save(); return talk(d.name, STORY[d.id].intro, () => district(d)); }
     const m = el('div', 'meds');
     for (const p of P.filter(x => x.d === d.id)) {
       const ok = st.solved[p.id], b = el('div', 'med' + (ok ? ' ok' : '')), cg = el('div', 'cog');
@@ -1254,7 +1260,7 @@ export default async function (ctx) {
     const pen = (t, col) => { const b = el('button', 'dark', t); b.onclick = () => { ink = col; }; return b; };
     const clear = el('button', 'dark', 'TOUT EFFACER'); clear.onclick = () => { delete memos[p.id]; box.remove(); memo(p, host); };
     const close = el('button', '', 'FERMER'); close.onclick = () => box.remove();
-    tools.append(pen('CRAYON', C.k), pen('ROUGE', C.R), pen('GOMME', C.p), clear, close);
+    tools.append(pen('CRAYON', C.k), pen('ROUGE', C.R), pen('BLEU', C.S), pen('VERT', C.G), pen('GOMME', C.p), clear, close);
     box.append(el('div', 'label', 'BROUILLON'), c, tools); host.append(box);
   }
   // l'histoire d'un côté, la question de l'autre (le dernier paragraphe, ou à défaut la dernière phrase), bien en vue
@@ -1276,6 +1282,11 @@ export default async function (ctx) {
     const [story, goal] = p.goal ? [p.q, p.goal] : splitQ(p.q), gb = el('div', 'goal'); gb.append(el('b', '', 'CE QU\'IL FAUT TROUVER'), goal);
     card.append(says); if (story) card.append(el('div', 'q', story)); card.append(gb, stamp);
     if (p.fig) card.append(FIG[p.fig]());
+    if (!replay && rank(p) === 4 && STORY[p.d] && !st.plumes[p.d]) {  // une plume de la Pie, dans un coin du dessin
+      const host = card.querySelector('.scene') || says, fe = el('span', 'plume'); fe.append(sprite(FEATHER, 2)); host.style.position = 'relative';
+      fe.onclick = e => { e.stopPropagation(); st.plumes[p.d] = 1; st.bougies += 1; save(); fe.remove(); refreshBar(); msg.textContent = 'Une plume noire et blanche, avec un mot roulé : « ' + STORY[p.d].plume + ' » (+1 bougie)'; };
+      host.append(fe);
+    }
     const showWhy = () => {
       after.replaceChildren(el('div', 'why', p.why));
       const list = P.filter(x => x.d === p.d), nx = list[list.indexOf(p) + 1], row = el('div', 'ans'), back = el('button', 'dark', 'RETOUR AU QUARTIER'); back.onclick = () => district(d); row.append(back);
@@ -1288,6 +1299,11 @@ export default async function (ctx) {
     const win = () => {
       if (!replay && !solved()) { st.solved[p.id] = worth(p); st.bougies += 1; save(); }
       setVal(); msg.textContent = ''; flash(true); ans.querySelectorAll('button,input').forEach(x => { if (!x.closest('.board')) x.disabled = true; }); showWhy(); refreshBar(); drawHints();
+      if (!replay && STORY[p.d] && !st.clues[p.d] && solvedIn(p.d) >= UNLOCK) {  // le quartier est fini : son habitant donne l'indice
+        st.clues[p.d] = 1; save();
+        const c = el('div', 'parch chapter'), go = el('button', '', 'VOIR L\'ENQUÊTE'); go.onclick = enquete;
+        c.append(el('div', 'label', 'NOUVEL INDICE · ' + nClues() + ' / ' + D.length), sayLine(d.who, STORY[p.d].clue), go); after.prepend(c);
+      }
     };
     const lose = (text, noCost) => { if (!noCost && !replay && !solved()) { st.tries[p.id] = (st.tries[p.id] || 0) + 1; save(); setVal(); } flash(false); msg.textContent = text || 'Ce n\'est pas ça. Réfléchis encore, ou allume une bougie.'; };
     if (p.type === 'num' || p.type === 'text') {
@@ -1319,14 +1335,119 @@ export default async function (ctx) {
     wrap.replaceChildren(bar, card, el('div', 'label', 'INDICES'), hints); scrollTop();
     if (solved()) { ans.querySelectorAll('button,input').forEach(x => { if (!x.closest('.board')) x.disabled = true; }); showWhy(); }
   }
+  /* ---------- l'histoire (1.3.0) : Minuit, le chat de l'horloger, guide d'un quartier à l'autre ; la Pie cache les rouages ;
+     chaque quartier fini donne un indice, une plume de la Pie est cachée dans la 4e énigme de chaque quartier, et l'enquête se résout à la fin ---------- */
+  Object.assign(FACES, {
+    minuit: ['................', '..kk........kk..', '.kdk........kdk.', '.kddk......kddk.', '.kdddkkkkkkdddk.', 'kddddddddddddddk', 'kddllddddddllddk', 'kddlkddddddlkddk',
+      'kddddddddddddddk', 'kdddddddrddddddk', '.kdddwdddddwddk.', '.kddddkddkddddk.', '..kddddddddddk..', '...kkddddddkk...', '....kyyyyyyk....', '.....kkllkk.....'],
+    pie: ['.......kk.......', '......kwwk......', '....kkkwkkkk....', '...kddddddddk...', '..kddddddddddk..', '..kdkkkkkkkkdk..', '..kkkwkkkkwkkk..', '..kdkkkkkkkkdk..',
+      '..kdffffffffdk..', '..kdffffffffdk..', '..kdfffkkfffdk..', '...kdffffffdk...', '....kkffffkk....', '..kkdddkkdddkk..', '.kdwdwdwdwdwdwk.', '.kwdwdwdwdwdwdk.'],
+    anselme: ['................', '.....kkkkkk.....', '....kwwwwwwk....', '...kwffffffwk...', '..kwfffffffFwk..', '..kwfkfffyyFwk..', '..kwfffffffFwk..', '..kwfffrrffFwk..',
+      '..kwwwwwwwwwwk..', '..kwwwwkkwwwwk..', '...kwwwwwwwwk...', '....kwwwwwwk....', '.....kwwwwk.....', '..kkbbbkkbbbkk..', '.kbbbbyybbbbbbk.', '.kbbbbbyybbbbbk.'],
+    pantin: ['.......kk.......', '.......ky.......', '.....kkkkkk.....', '....kaaaaaak....', '...kaYaaaaYak...', '...kakkaakkak...', '...kalkaalkak...', '...kaaaaaaaak...',
+      '...kakkkkkkak...', '...kaYkYkYkak...', '....kaaaaaak....', '.....kkkkkk.....', '......kaak......', '..kkkkaaaakkkk..', '.kYaaaaYYaaaaYk.', '.kaaaaaYYaaaaak.'],
+  });
+  const FEATHER = ['......kw', '.....kwk', '....kwdk', '...kwdk.', '..kwdk..', '.kddk...', '.kk.....', 'k.......'];
+  const WHO = { minuit: 'Minuit', pie: 'La Pie', anselme: 'Anselme', pantin: 'Pantin' };
+  const STORY = {
+    marche: { intro: [['minuit', 'Un chat noir te frôle les jambes. À son collier, une clochette et une médaille : « Minuit, chat de l\'horloger Anselme ».'],
+        ['brindille', 'Tu as rencontré Minuit ! Il n\'a plus de maître depuis que le vieil Anselme est parti, il y a dix ans. Depuis cette nuit, il miaule devant l\'horloge. Il sait quelque chose, ce chat-là.']],
+      clue: 'La nuit de la panne, je pétrissais avant l\'aube. J\'ai vu une silhouette avec une cape à plumes noires et blanches filer sur les toits, un sac de rouages sur l\'épaule. Tout le monde l\'appelle déjà « la Pie ».',
+      plume: 'Si tu lis ceci, tu es plus malin que les autres.' },
+    port: { intro: [['minuit', 'Minuit saute de barque en barque et s\'assoit à la proue de celle d\'Octave, comme s\'il t\'attendait.'],
+        ['octave', 'Ce chat te suit, on dirait. Si tu cherches la Pie, sache qu\'elle m\'a emprunté ma barque cette nuit-là.']],
+      clue: 'Ma barque est revenue au matin, bien amarrée, avec un mot sous le banc : « Je ne vole rien. Je les garde au chaud. » Une voleuse qui rend ce qu\'elle emprunte… drôle de voleuse.',
+      plume: 'Je ne suis pas une voleuse.' },
+    tour: { intro: [['minuit', 'Au pied de la grande horloge, Minuit gratte la porte de la salle des engrenages et miaule doucement.'],
+        ['yse', 'Personne n\'y entre sans ma clé. Enfin… sans l\'une des deux clés. Résous mes énigmes et je t\'ouvrirai le registre.']],
+      clue: 'Le registre est formel : l\'horloge n\'est pas tombée en panne. On l\'a arrêtée de l\'intérieur, avec une clé de remontage. Il n\'en existe que deux : la mienne, que je n\'ai jamais quittée, et la clé dorée d\'Anselme, partie avec lui.',
+      plume: 'L\'horloge allait se briser : il fallait l\'arrêter.' },
+    jardins: { intro: [['minuit', 'Minuit se faufile sous les rosiers suspendus et en ressort le museau tout noir.'],
+        ['capucine', 'Regarde-moi ce museau ! Mes rosiers sous la tour sont pleins de taches sombres depuis la nuit de la panne. Et ce n\'est pas de la terre.']],
+      clue: 'J\'ai fait sentir les taches à Hector : c\'est de l\'huile fine, celle qu\'on met dans les articulations des automates. Quelque chose de mécanique est passé sous la tour cette nuit-là.',
+      plume: 'Chaque rouage est caché chez quelqu\'un de bien.' },
+    thermes: { intro: [['minuit', 'Minuit déteste l\'eau. Il reste perché sur une colonne, les yeux fixés sur le bassin des machines.'],
+        ['hector', 'Ici, on lave les gens… et parfois les machines. Tu veux savoir qui est venu ? Fais d\'abord tes preuves.']],
+      clue: 'Le lendemain de la panne, un automate en cuivre est venu se faire nettoyer. Ses engrenages étaient pleins de suie d\'horloge, et il portait une petite clé dorée sur la tête. Il n\'a pas dit un mot, bien sûr.',
+      plume: 'En les rendant, la ville apprend à réparer son horloge.' },
+    mines: { intro: [['minuit', 'Dans le noir des galeries, on ne voit plus que les deux yeux jaunes de Minuit, qui te montre le chemin.'],
+        ['gaspard', 'Un chat dans ma mine ! Il connaît les galeries mieux que moi. Anselme l\'emmenait partout, à l\'époque.']],
+      clue: 'Il y a un mois, on m\'a commandé une copie en cuivre de la clé d\'Anselme, pour le Théâtre, payée en billets de spectacle. J\'ai trouvé ça bizarre… mais une commande est une commande.',
+      plume: 'Grand-père dit qu\'une horloge oubliée meurt deux fois.' },
+    theatre: { intro: [['minuit', 'Sur la scène vide, Minuit renifle une malle d\'accessoires et s\'y installe comme chez lui.'],
+        ['lyre', 'Ce chat a bon goût : c\'est la malle d\'Anselme. Il a construit mes plus beaux automates, avant de partir.']],
+      clue: 'Je prépare une pièce sur Anselme : j\'ai fait copier sa clé en cuivre pour le décor, rien de plus. Mais il y a pire : Pantin, le premier automate qu\'il a construit, a disparu de ma réserve la nuit de la panne. Lui seul connaît l\'horloge par cœur.',
+      plume: 'Pantin a fait ce qu\'on lui a demandé. Ne lui en veux pas.' },
+    observatoire: { intro: [['minuit', 'Minuit grimpe sur la lunette et regarde vers la gare, la queue battante.'],
+        ['selene', 'Il regarde toujours dans la même direction, ton chat. Moi, je regarde les étoiles… et parfois les toits.']],
+      clue: 'Avec ma lunette, j\'ai vu la Pie déposer des rouages dans chaque quartier, un par un, chez les habitants. Elle ne les volait pas : elle les cachait là où on finirait par les trouver.',
+      plume: 'Suis le chat. Il sait où nous trouver.' },
+    gare: { intro: [['minuit', 'Sur le quai, Minuit s\'arrête net devant une vieille malle qui fait tic-tac.'],
+        ['firmin', 'Cette malle-là ? Un vieux voyageur l\'a laissée à la consigne. Il a dit qu\'il reviendrait quand l\'horloge sonnerait.']],
+      clue: 'Le voyageur avait une barbe blanche, un monocle et une chaîne de montre en or. Il a demandé si le chat noir allait bien, puis il a signé le registre de la consigne d\'une seule lettre : « A ».',
+      plume: 'Signé : la Pie, petite-fille d\'Anselme.' },
+  };
+  const SUSPECTS = [
+    ['pie', 'La Pie n\'a rien arrêté : elle est arrivée après, pour cacher les rouages dans la ville (Octave et Sélène l\'ont vue). Cherche qui avait une clé de remontage.'],
+    ['lyre', 'Madame Lyre a fait copier la clé en cuivre, pour un décor. Or la clé de l\'automate était dorée (Hector), comme celle d\'Anselme (Ysé). Cherche ailleurs.'],
+    ['gaspard', 'Gaspard a seulement fabriqué la copie qu\'on lui a commandée. Il n\'est jamais monté dans la tour.'],
+    ['pantin', ''],
+  ];
+  const REVEAL = [
+    ['minuit', 'Tu ouvres la malle de la consigne. Dedans, recroquevillé, Pantin l\'automate, une petite clé dorée sur la tête. Minuit ronronne contre lui.'],
+    ['pantin', 'Clic. Ordre d\'Anselme : arrêter l\'horloge avant qu\'elle ne se brise. Le grand ressort était fendu. Clic.'],
+    ['anselme', 'Il dit vrai. De loin, j\'ai vu que la tour penchait : son ressort allait tout casser. Alors j\'ai envoyé Pantin arrêter l\'horloge, avec ma clé.'],
+    ['pie', 'Et moi, j\'ai caché les rouages chez tout le monde. Grand-père voulait que la ville répare son horloge elle-même, pour que plus personne ne l\'oublie.'],
+    ['anselme', 'Et c\'est toi qui l\'as fait. Minuit, mon vieux… merci de l\'avoir guidé jusqu\'ici.'],
+  ];
+  st.seen ??= {}; st.clues ??= {}; st.plumes ??= {};
+  const nClues = () => D.filter(d => st.clues[d.id]).length, nPlumes = () => D.filter(d => st.plumes[d.id]).length;
+  const whoOf = w => WHO[w] || D.find(d => d.who === w)?.whoName.split(',')[0] || w;
+  // une ligne de dialogue : le visage, puis la bulle (Minuit ne parle pas : sa ligne est racontée)
+  const sayLine = (w, text) => { const r = el('div', 'tline'), b = el('div', 'bubble' + (w === 'minuit' ? ' narr' : '')); if (w !== 'minuit') b.append(el('b', '', whoOf(w)), ' '); b.append(text); r.append(face(w, 4), b); return r; };
+  // une scène : les lignes une à une (SUITE), puis done()
+  function talk(title, lines, done, endLabel = 'CONTINUER') {
+    const box = el('div', 'parch talk'), list = el('div', 'tlines'), next = el('button', '', 'SUITE >');
+    let i = 0;
+    const step = () => { list.append(sayLine(...lines[i++])); list.lastChild.scrollIntoView?.({ block: 'nearest' }); if (i >= lines.length) next.textContent = endLabel; };
+    next.onclick = () => i < lines.length ? step() : done();
+    box.append(el('div', 'label', title), list, next); step();
+    wrap.replaceChildren(box); scrollTop();
+  }
+  // l'enquête : les indices des quartiers, les plumes de la Pie, et la question finale
+  function enquete() {
+    const box = el('div'), h = el('div', 'parch'), n = nClues();
+    h.append(el('h2', '', 'L\'enquête'), el('div', 'blurb', st.mystery ? 'Mystère résolu : Pantin a arrêté l\'horloge sur l\'ordre d\'Anselme, pour la sauver.' : 'Qui a arrêté la grande horloge, et pourquoi ? Chaque quartier terminé te donne un indice. ' + n + (n > 1 ? ' indices' : ' indice') + ' sur ' + D.length + '.'));
+    box.append(h);
+    for (const d of D) {
+      const c = el('div', 'parch who clue' + (st.clues[d.id] ? '' : ' lock')), txt = el('div');
+      txt.append(el('b', '', d.name), el('div', 'blurb', st.clues[d.id] ? STORY[d.id].clue : 'Termine ' + UNLOCK + ' énigmes de ce quartier pour obtenir son indice.'));
+      c.append(face(d.who, 3), txt); box.append(c);
+    }
+    const pl = el('div', 'parch'), np = nPlumes();
+    pl.append(el('b', '', 'Les plumes de la Pie : ' + np + ' sur ' + D.length), el('div', 'blurb', np ? 'Une plume est cachée dans la 4e énigme de chaque quartier, avec un petit mot.' : 'La Pie laisse des plumes derrière elle. Ouvre l\'œil dans les dessins des énigmes.'));
+    for (const d of D) if (st.plumes[d.id]) pl.append(el('div', 'blurb note', '« ' + STORY[d.id].plume + ' »'));
+    box.append(pl);
+    if (n === D.length && !st.mystery) {
+      const q = el('div', 'parch'), opts = el('div', 'suspects'), why = el('div', 'msg');
+      q.append(el('h2', '', 'Qui a arrêté la grande horloge ?'), el('div', 'blurb', 'Relis les indices : qui avait une clé dorée, de l\'huile d\'automate et la suie de l\'horloge ?'));
+      for (const [w, no] of SUSPECTS) {
+        const b = el('button', 'suspect'); b.append(face(w, 3), whoOf(w));
+        b.onclick = () => { if (no) { why.textContent = no; return; } st.mystery = true; save(); talk('Le mystère de l\'horloge', REVEAL, enquete, 'FIN'); };
+        opts.append(b);
+      }
+      q.append(opts, why); box.append(q);
+    }
+    wrap.replaceChildren(top(map, 'Carte'), box); scrollTop();
+  }
   function ending() {
     const f = el('div', 'final parch');
     f.append(clock(true, 5), el('h2', '', 'La grande horloge bat de nouveau'),
       el('p', '', 'Le dernier rouage s\'est enclenché avec un « clac » sonore. Dans toute la ville, on a levé la tête : les aiguilles repartaient. Ysé a refermé son registre en souriant : « Valcendre n\'oubliera pas ton nom. »'),
-      el('p', 'big', score() + ' étincelles sur ' + P.reduce((s, p) => s + p.pts, 0)));
+      el('p', 'big', score() + ' étincelles sur ' + P.reduce((s, p) => s + p.pts, 0)), el('p', '', st.mystery ? 'Et tu as percé le mystère : Anselme est rentré, et Minuit dort de nouveau sur l\'établi de l\'horloger.' : 'Un mystère reste à percer : qui a arrêté l\'horloge ? Ouvre l\'enquête depuis la carte.'));
     const b = el('button', '', 'REVENIR À LA CARTE'); b.onclick = map; f.append(b);
     wrap.replaceChildren(f);
   }
-  globalThis.__valcendre = { P, D, puzzle, district, map, carnet };  // pour le test automatique de NeoDex
+  globalThis.__valcendre = { P, D, puzzle, district, map, carnet, enquete, st: () => st, STORY };  // pour le test automatique de NeoDex
   title();
 }

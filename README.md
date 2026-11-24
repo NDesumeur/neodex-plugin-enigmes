@@ -54,6 +54,16 @@ Dans NeoDex : **NeoStore → À découvrir → Valcendre → Installer**.
 
 Développer un plugin : voir le [SDK NeoDex](https://github.com/NDesumeur/neodex-sdk).
 
+## Nouveautés de la version 1.3.0 : le mystère de l'horloge
+
+- **Une histoire qui se suit** : qui a arrêté la grande horloge, et pourquoi ?
+  - **Minuit**, le chat noir de l'horloger disparu, te guide d'un quartier à l'autre. À ton arrivée dans chaque quartier, une petite scène le montre avec son habitant.
+  - **La Pie**, une voleuse en cape à plumes, a filé sur les toits avec les rouages. Mais est-ce vraiment une voleuse ?
+- **Un indice par quartier** : quand tu as résolu 7 énigmes d'un quartier, son habitant te confie ce qu'il a vu. Les indices se rangent dans **L'ENQUÊTE**, un bouton de la carte.
+- **Les plumes de la Pie** : une plume est cachée dans le dessin de la 4e énigme de chaque quartier. Clique-la pour lire le petit mot qu'elle porte et gagner une bougie. Les neuf mots forment une lettre.
+- **La question finale** : avec les neuf indices, désigne qui a arrêté l'horloge. Une mauvaise réponse est expliquée ; la bonne ouvre la scène finale.
+- **Brouillon** : deux encres de plus, bleu et vert.
+
 ## Nouveautés de la version 1.2.0
 
 - **La Gare**, neuvième quartier, ouvert après 7 énigmes de l'Observatoire : Firmin le chef de gare propose 12 énigmes, dont deux nouveaux genres.

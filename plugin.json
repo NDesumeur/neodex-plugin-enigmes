@@ -1,7 +1,7 @@
 {
   "id": "neodex.enigmes",
   "name": "Valcendre",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "author": "NDesumeur",
   "description": "La grande horloge de Valcendre s'est arrêtée : retrouve ses 192 rouages en résolvant les énigmes illustrées des habitants de neuf quartiers. Allumettes, rivières, vases, tuyaux, labyrinthes, picross, carrés latins, cadenas, menteurs et devinettes ; des bougies pour allumer les indices, un brouillon pour griffonner, une explication après chaque énigme et une histoire jusqu'au redémarrage de l'horloge. Version 1.2.0 : un neuvième quartier, la Gare, avec deux nouveaux genres d'énigmes (bagages à pousser, voies à relier), un carnet pour rejouer les énigmes réussies, des buts écrits en clair et des numéros d'énigme dans chaque quartier.",
   "icon": "icon.png",
@@ -11,7 +11,11 @@
   "sdk": "2.1.0",
   "type": "app",
   "category": "Jeux",
-  "compatibility": ["windows", "android", "linux"],
+  "compatibility": [
+    "windows",
+    "android",
+    "linux"
+  ],
   "syncMode": "progression",
   "syncInfo": "Énigmes résolues, avancement.",
   "mobile": true,
@@ -19,5 +23,87 @@
   "dependencies": {},
   "permissions": [
     "storage"
+  ],
+  "succes": [
+    {
+      "id": "premier",
+      "nom": "Première étincelle",
+      "texte": "Résoudre une première énigme"
+    },
+    {
+      "id": "cinquante",
+      "nom": "Esprit vif",
+      "texte": "Résoudre 50 énigmes"
+    },
+    {
+      "id": "cent",
+      "nom": "Grand penseur",
+      "texte": "Résoudre 100 énigmes"
+    },
+    {
+      "id": "q-marche",
+      "nom": "Le Marché",
+      "texte": "Résoudre toutes les énigmes du quartier Le Marché"
+    },
+    {
+      "id": "q-port",
+      "nom": "Le Port",
+      "texte": "Résoudre toutes les énigmes du quartier Le Port"
+    },
+    {
+      "id": "q-tour",
+      "nom": "La Tour de l'Horloge",
+      "texte": "Résoudre toutes les énigmes du quartier La Tour de l'Horloge"
+    },
+    {
+      "id": "q-jardins",
+      "nom": "Les Jardins suspendus",
+      "texte": "Résoudre toutes les énigmes du quartier Les Jardins suspendus"
+    },
+    {
+      "id": "q-thermes",
+      "nom": "Les Thermes",
+      "texte": "Résoudre toutes les énigmes du quartier Les Thermes"
+    },
+    {
+      "id": "q-mines",
+      "nom": "Les Mines de cuivre",
+      "texte": "Résoudre toutes les énigmes du quartier Les Mines de cuivre"
+    },
+    {
+      "id": "q-theatre",
+      "nom": "Le Théâtre des automates",
+      "texte": "Résoudre toutes les énigmes du quartier Le Théâtre des automates"
+    },
+    {
+      "id": "q-observatoire",
+      "nom": "L'Observatoire",
+      "texte": "Résoudre toutes les énigmes du quartier L'Observatoire"
+    },
+    {
+      "id": "q-gare",
+      "nom": "La Gare",
+      "texte": "Résoudre toutes les énigmes du quartier La Gare"
+    },
+    {
+      "id": "toutes",
+      "nom": "La ville entière",
+      "texte": "Résoudre toutes les énigmes de la ville",
+      "cache": true
+    }
+  ],
+  "records": [
+    {
+      "id": "etincelles",
+      "nom": "Étincelles",
+      "sens": "haut",
+      "format": "nombre"
+    },
+    {
+      "id": "resolues",
+      "nom": "Énigmes résolues",
+      "sens": "haut",
+      "format": "nombre"
+    }
   ]
 }

@@ -683,13 +683,25 @@ export default async function (ctx) {
   /* ---------- la partie, gardée par NeoDex ---------- */
   let st = (await ctx.storage.get().catch(() => null)) || {};
   st = { solved: {}, tries: {}, hints: {}, bougies: 5, ...st };
-  const save = () => ctx.storage.set(st).catch(() => {});
+  const save = () => { setTimeout(enTrophies); return ctx.storage.set(st).catch(() => {}); };
+  // les trophées de NeoDex (3.4.8 et plus) : succès et records déclarés dans plugin.json ; sur un NeoDex plus ancien, rien ne se passe
+  const trophy = id => { ctx.games?.unlock(id).catch(() => {}); };
+  const trophyRecord = (id, v) => { if (v != null && Number.isFinite(+v)) ctx.games?.record(id, +v).catch(() => {}); };
   const solvedIn = d => P.filter(p => p.d === d && st.solved[p.id]).length;
   const unlocked = i => i === 0 || solvedIn(D[i - 1].id) >= UNLOCK;
   const score = () => Object.values(st.solved).reduce((s, v) => s + v, 0);
   const worth = p => Math.max(Math.ceil(p.pts / 2), p.pts - Math.round(p.pts * .1) * (st.tries[p.id] || 0));
   const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’-]/g, ' ').replace(/\s+/g, ' ').trim();
 
+  // les trophées, tirés des statistiques et des records gardés (aussi à l'ouverture : ce qui a été fait avant compte)
+  function enTrophies() {
+    const n = Object.keys(st.solved).length, sig = n + ':' + score(); if (sig === enTrophies.sig) return; enTrophies.sig = sig;
+    trophyRecord('etincelles', score() || null); trophyRecord('resolues', n || null);
+    if (n >= 1) trophy('premier'); if (n >= 50) trophy('cinquante'); if (n >= 100) trophy('cent'); if (n >= TOTAL) trophy('toutes');
+    const done = d => P.some(p => p.d === d) && P.filter(p => p.d === d).every(p => st.solved[p.id]);
+    if (done('marche')) trophy('q-marche'); if (done('port')) trophy('q-port'); if (done('tour')) trophy('q-tour'); if (done('jardins')) trophy('q-jardins'); if (done('thermes')) trophy('q-thermes');
+    if (done('mines')) trophy('q-mines'); if (done('theatre')) trophy('q-theatre'); if (done('observatoire')) trophy('q-observatoire'); if (done('gare')) trophy('q-gare');
+  }
   const root = el('div', 'vc'); ctx.view.replaceChildren(root);
   const wrap = el('div', 'wrap'); root.append(sky, wrap);
   requestAnimationFrame(drawSky);
@@ -1400,7 +1412,7 @@ export default async function (ctx) {
     ['pie', 'Et moi, j\'ai caché les rouages chez tout le monde. Grand-père voulait que la ville répare son horloge elle-même, pour que plus personne ne l\'oublie.'],
     ['anselme', 'Et c\'est toi qui l\'as fait. Minuit, mon vieux… merci de l\'avoir guidé jusqu\'ici.'],
   ];
-  st.seen ??= {}; st.clues ??= {}; st.plumes ??= {};
+  st.seen ??= {}; st.clues ??= {}; st.plumes ??= {}; setTimeout(enTrophies);
   const nClues = () => D.filter(d => st.clues[d.id]).length, nPlumes = () => D.filter(d => st.plumes[d.id]).length;
   const whoOf = w => WHO[w] || D.find(d => d.who === w)?.whoName.split(',')[0] || w;
   // une ligne de dialogue : le visage, puis la bulle (Minuit ne parle pas : sa ligne est racontée)
